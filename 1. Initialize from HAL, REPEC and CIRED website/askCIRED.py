@@ -166,6 +166,7 @@ def main():
     scraper.clean()
     scraper.export_csv()
     scraper.export_json()
+    scraper.export_vcard()
     print(f"Scraped {len(scraper.people)} people.")
 
 if __name__ == "__main__":
