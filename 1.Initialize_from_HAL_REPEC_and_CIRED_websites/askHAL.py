@@ -75,7 +75,7 @@ with open(output_path, mode="w", encoding="utf-8") as f:
         f.write("BEGIN:VCARD\n")
         f.write("VERSION:4.0\n")
         f.write("PRODID:askHAL.py\n")
-        f.write(f"SOURCE:{','.join(urls)}\n")
+        f.write("SOURCE:api.archives-ouvertes.fr/search\n")
         f.write(f"REV:{datetime.datetime.utcnow().replace(microsecond=0).isoformat()}Z\n")
         f.write(f"FN:{preferred_name}\n")
         f.write(f"N:{surname};{given};;;\n")
