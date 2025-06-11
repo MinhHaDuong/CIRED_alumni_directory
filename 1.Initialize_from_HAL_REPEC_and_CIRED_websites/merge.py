@@ -7,6 +7,17 @@ import vobject
 import sys
 from pathlib import Path
 
+def safe_serialize(vcard):
+    """Serialize vCard safely, fallback if list values present."""
+    try:
+        return vcard.serialize()
+    except AttributeError:
+        parts = []
+        for comp_list in vcard.contents.values():
+            for comp in comp_list:
+                parts.append(comp.serialize())
+        return ''.join(parts)
+
 def read_vcards_from_file(file_path):
     """Read all vCards from a file and return them as a list."""
     vcards = []
@@ -54,7 +65,7 @@ def merge_vcard_files(file_paths, output_path):
             for i, vcard in enumerate(all_vcards):
                 if i > 0:
                     f.write('\n')  # Add blank line between vCards
-                f.write(vcard.serialize())
+                f.write(safe_serialize(vcard))
 
         print(f"Successfully merged {len(all_vcards)} vCard(s) into {output_path}")
         return True
@@ -113,7 +124,7 @@ def merge_with_dedup(file_paths, output_path):
             for i, vcard in enumerate(unique_vcards):
                 if i > 0:
                     f.write('\n')
-                f.write(vcard.serialize())
+                f.write(safe_serialize(vcard))
 
         print(f"Successfully merged {len(unique_vcards)} unique vCard(s) into {output_path}")
         return True
