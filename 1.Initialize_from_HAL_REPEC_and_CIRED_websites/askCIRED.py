@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+"""
+Module de scraping pour le site CIRED,
+récupérant les informations des chercheurs et anciens chercheurs.
+"""
 import requests
 from bs4 import BeautifulSoup
 from dataclasses import dataclass, asdict
@@ -11,6 +15,7 @@ from datetime import datetime
 
 @dataclass
 class Person:
+    """Représente une personne avec ses informations personnelles et professionnelles."""
     nom: str
     prenom: str = ""
     statut: str = ""
@@ -24,7 +29,9 @@ class Person:
     affiliation_actuelle: str = ""
 
 class CiredScraper:
+    """Scraper pour le site CIRED, récupérant les profils des personnels actuels et anciens."""
     def __init__(self):
+        """Initialise la session HTTP et configure les en-têtes pour le scraper."""
         self.session = requests.Session()
         self.session.headers.update({
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -465,6 +472,7 @@ class CiredScraper:
         print(f"Exported {len(self.people)} people to {filename}")
 
 def main():
+    """Point d'entrée du script : exécute le scraper et exporte les résultats."""
     scraper = CiredScraper()
     
     print("Adding known alumni...")
