@@ -155,17 +155,32 @@ class CiredScraper:
             for p in self.people:
                 writer.writerow(asdict(p))
 
-    def export_json(self, filename="cired_people.json"):
+    def export_vcard(self, filename=None):
+        import os
+        from datetime import datetime
+        if not filename:
+            filename = os.path.splitext(os.path.basename(__file__))[0] + ".vcf"
         with open(filename, 'w', encoding='utf-8') as f:
-            json.dump([asdict(p) for p in self.people], f, ensure_ascii=False, indent=2)
+            for p in self.people:
+                f.write("BEGIN:VCARD\n")
+                f.write("VERSION:4.0\n")
+                f.write(f"PRODID:-//{os.path.basename(__file__)}//\n")
+                f.write(f"REV:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}\n")
+                f.write(f"FN:{p.prenom} {p.nom}\n")
+                f.write(f"N:{p.nom};{p.prenom};;;\n")
+                f.write(f"ORG:{p.affiliation_actuelle}\n")
+                f.write(f"TITLE:{p.statut}\n")
+                if p.domaine_recherche:
+                    f.write(f"EXPERTISE:{p.domaine_recherche}\n")
+                if p.url_profil:
+                    f.write(f"SOURCE:{p.url_profil}\n")
+                f.write("END:VCARD\n\n")
 
 def main():
     scraper = CiredScraper()
     scraper.add_known_people()
     scraper.scrape_cired_website()
     scraper.clean()
-    scraper.export_csv()
-    scraper.export_json()
     scraper.export_vcard()
     print(f"Scraped {len(scraper.people)} people.")
 
