@@ -256,7 +256,7 @@ class CiredScraper:
             return f"https://hal.science/{hal_id}"
         
         # If we can't extract the ID, return the original URL
-        return url
+        return hal_url
 
     def _extract_person_from_entry(self, entry, base_url):
         """Extract person information from an HTML entry"""
