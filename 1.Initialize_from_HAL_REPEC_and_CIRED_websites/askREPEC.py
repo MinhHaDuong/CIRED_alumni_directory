@@ -103,7 +103,9 @@ def export_to_vcard(researchers, filename="askREPEC.vcf"):
                 f.write(f"SOURCE:{r.profile_url}\n")
             if r.personal_url:
                 f.write(f"URL;TYPE=HOME:{r.personal_url}\n")
-            f.write(f"X-CIRED-HISTORY:Listed as CIRED {'Alumni' if r.is_alumni else 'Member'} in REPEC on 2025-06-11\n")
+            f.write(
+                f"X-CIRED-HISTORY:Listed as CIRED {'Alumni' if r.is_alumni else 'Member'} in REPEC on 2025-06-11\n"
+            )
             f.write("END:VCARD\n\n")
     print(f"✅ Fichier VCF exporté : {filename}")
 
