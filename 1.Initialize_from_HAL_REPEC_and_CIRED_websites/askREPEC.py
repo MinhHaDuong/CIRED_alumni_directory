@@ -73,7 +73,7 @@ class RepecCiredLookup:
         """Extraire les membres listés dans la section Members"""
         members = []
         # Trouver la section Members par titre (lien #members)
-        section = soup.find(lambda tag: tag.name in ['h2','h3','h4'] 
+        section = soup.find(id='members') or soup.find(lambda tag: tag.name in ['h2','h3','h4'] 
                             and re.search(r'Members', tag.get_text(), re.IGNORECASE))
         if section:
             ol = section.find_next('ol')
@@ -92,7 +92,7 @@ class RepecCiredLookup:
         """Extraire les alumni listés dans la section Alumni"""
         alumni = []
         # Trouver la section Alumni par titre (lien #alumni)
-        section = soup.find(lambda tag: tag.name in ['h2','h3','h4'] 
+        section = soup.find(id='alumni') or soup.find(lambda tag: tag.name in ['h2','h3','h4'] 
                             and re.search(r'Alumni', tag.get_text(), re.IGNORECASE))
         if section:
             ol = section.find_next('ol')
