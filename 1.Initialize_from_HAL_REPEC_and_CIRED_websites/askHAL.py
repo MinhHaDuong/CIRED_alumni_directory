@@ -76,6 +76,7 @@ with open(output_path, mode="w", encoding="utf-8") as f:
         f.write(f"N:{surname};{given};;;\n")
         if uid:
             f.write(f"UID:{uid}\n")
+            f.write(f"URL;TYPE=HAL:https://hal.science/{uid}\n")
         f.write(f"NOTE:Publication Count: {count}\n")
         f.write("END:VCARD\n")
 
