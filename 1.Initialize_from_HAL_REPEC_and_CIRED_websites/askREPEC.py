@@ -188,45 +188,6 @@ class RepecCiredLookup:
         
         return researchers[:20]  # Limiter davantage
     
-    def add_known_cired_researchers(self) -> List[Researcher]:
-        """Ajouter des chercheurs CIRED connus trouvés dans RePEc"""
-        logger.info("Ajout de chercheurs CIRED connus...")
-        
-        # Chercheurs connus dans RePEc/CIRED (basé sur les recherches précédentes)
-        known_researchers = [
-            ("Jean-Charles", "Hourcade", True),
-            ("Minh", "Ha-Duong", False),
-            ("Celine", "Guivarch", False),
-            ("Olivier", "Sassi", True),
-            ("Henri", "Waisman", True),
-            ("Julie", "Rozenberg", True),
-            ("Renaud", "Crassous", True),
-            ("Vincent", "Gitz", True),
-            ("Franck", "Lecocq", False),
-            ("Philippe", "Quirion", False),
-            ("Patrice", "Dumas", False),
-            ("Bruno", "Dorin", False),
-            ("Adrien", "Fabre", False),
-            ("Louis-Gaetan", "Giraudet", False),
-            ("Stephane", "Hallegatte", True),
-            ("Alain", "Nadai", False),
-            ("Catherine", "Boemare", False),
-            ("Gilles", "Crague", False),
-            ("Vincent", "Viguie", False)
-        ]
-        
-        researchers = []
-        for prenom, nom, is_alumni in known_researchers:
-            researchers.append(Researcher(
-                nom=nom,
-                prenom=prenom,
-                status="Known CIRED Researcher",
-                is_alumni=is_alumni,
-                publications_count=5  # Estimation
-            ))
-        
-        logger.info(f"Ajouté {len(researchers)} chercheurs connus")
-        return researchers
     
     def _extract_from_sections(self, soup: BeautifulSoup) -> List[Researcher]:
         """Extraire depuis les sections spécifiques avec filtrage amélioré"""
