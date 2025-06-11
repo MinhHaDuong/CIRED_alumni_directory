@@ -266,7 +266,6 @@ class CiredScraper:
             # Name and Job Title
             name_div = entry.select_one(".member-name")
             if name_div:
-                raw_text = name_div.get_text(" ", strip=True)
                 name_only = name_div.contents[0].strip() if name_div.contents else ""
                 person.prenom, *rest = name_only.strip().split(" ", 1)
                 person.nom = rest[0] if rest else ""
