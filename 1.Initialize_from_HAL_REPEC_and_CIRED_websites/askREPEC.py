@@ -12,6 +12,8 @@ import re
 from dataclasses import dataclass, asdict
 from typing import List
 import logging
+import datetime
+import os
 
 # Configuration du logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -363,6 +365,24 @@ class RepecCiredLookup:
         
         print(f"✅ Fichier JSON créé: {filename}")
     
+    def export_to_vcard(self, researchers: List[Researcher], filename: str = None):
+        \"\"\"Exporter en VCard\"\"\"
+        if not filename:
+            filename = os.path.splitext(os.path.basename(__file__))[0] + ".vcf"
+        with open(filename, 'w', encoding='utf-8') as f:
+            for r in researchers:
+                f.write("BEGIN:VCARD\n")
+                f.write("VERSION:4.0\n")
+                f.write(f"FN:{r.prenom} {r.nom}\n")
+                f.write(f"N:{r.nom};{r.prenom};;;\n")
+                if r.profile_url:
+                    f.write(f"URL:{r.profile_url}\n")
+                if r.email:
+                    f.write(f"EMAIL:{r.email}\n")
+                f.write(f"NOTE:Publications: {r.publications_count}\n")
+                f.write("END:VCARD\n\n")
+        print(f"✅ Fichier VCF créé: {filename}")
+    
     def print_summary(self, researchers: List[Researcher]):
         """Afficher un résumé"""
         print(f"\n{'='*50}")
@@ -416,13 +436,11 @@ class RepecCiredLookup:
             self.print_summary(unique_researchers)
             
             # 6. Exporter
-            self.export_to_csv(unique_researchers)
-            self.export_to_json(unique_researchers)
+            self.export_to_vcard(unique_researchers)
             
             print("\n✅ Recherche terminée avec succès!")
-            print("📁 Fichiers générés:")
-            print("   - repec_cired_researchers.csv")
-            print("   - repec_cired_researchers.json")
+            print("📁 Fichier généré:")
+            print(f"   - {os.path.splitext(os.path.basename(__file__))[0]}.vcf")
             
             return unique_researchers
             
