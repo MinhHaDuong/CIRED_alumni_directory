@@ -71,7 +71,7 @@ with open(output_path, mode="w", encoding="utf-8") as f:
         uid = sorted(data["hal_ids"])[0] if data["hal_ids"] else ""
         count = data["count"]
         f.write("BEGIN:VCARD\n")
-        f.write("VERSION:3.0\n")
+        f.write("VERSION:4.0\n")
         f.write(f"FN:{preferred_name}\n")
         f.write(f"N:{surname};{given};;;\n")
         if uid:
