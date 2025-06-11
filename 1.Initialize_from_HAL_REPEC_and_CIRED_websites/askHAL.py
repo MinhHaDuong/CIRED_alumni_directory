@@ -3,6 +3,7 @@ import re
 import csv
 import unicodedata
 import datetime
+import os
 from collections import defaultdict
 
 # Structure URLs from HAL API
@@ -56,7 +57,7 @@ for url in urls:
             authors[norm_key]["count"] += count
 
 # Write deduplicated results to vCard
-output_path = "cired_authors.vcf"
+output_path = os.path.splitext(__file__)[0] + ".vcf"
 with open(output_path, mode="w", encoding="utf-8") as f:
     for key in sorted(authors):
         data = authors[key]
