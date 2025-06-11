@@ -170,7 +170,8 @@ def main():
     while True:
         choice = input("Remove duplicates? (y/n): ").lower().strip()
         if choice in ['y', 'yes']:
-            success = merge_with_dedup(input_files, output_file)
+            # success = merge_with_dedup(input_files, output_file)  # Déduplication désactivée
+            success = merge_vcard_files(input_files, output_file)
             break
         elif choice in ['n', 'no']:
             success = merge_vcard_files(input_files, output_file)
