@@ -76,7 +76,7 @@ class RepecCiredLookup:
         section = soup.find(id='members') or soup.find(lambda tag: tag.name in ['h2','h3','h4'] 
                             and re.search(r'Members', tag.get_text(), re.IGNORECASE))
         if section:
-            ol = section.find_next('ol')
+            ol = section.find('ol')
             if ol:
                 for li in ol.find_all('li'):
                     a = li.find('a', href=True)
@@ -95,7 +95,7 @@ class RepecCiredLookup:
         section = soup.find(id='alumni') or soup.find(lambda tag: tag.name in ['h2','h3','h4'] 
                             and re.search(r'Alumni', tag.get_text(), re.IGNORECASE))
         if section:
-            ol = section.find_next('ol')
+            ol = section.find('ol')
             if ol:
                 for li in ol.find_all('li'):
                     a = li.find('a', href=True)
