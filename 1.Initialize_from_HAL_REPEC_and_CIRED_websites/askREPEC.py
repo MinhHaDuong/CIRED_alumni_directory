@@ -58,29 +58,50 @@ class RepecCiredLookup:
     
     def extract_researchers(self, soup: BeautifulSoup) -> List[Researcher]:
         """Extraire les chercheurs de la page RePEc"""
-        logger.info("Extraction des chercheurs...")
+        logger.info("Extraction des chercheurs via sections membres et alumni...")
         
-        researchers = []
-        
-        # Méthode 1: Rechercher les liens vers les profils
-        profile_links = soup.find_all('a', href=re.compile(r'authors'))
-        logger.info(f"Trouvé {len(profile_links)} liens de profils")
-        
-        for link in profile_links:
-            researcher = self._parse_profile_link(link)
-            if researcher:
-                researchers.append(researcher)
-        
-        # Méthode 2: Rechercher dans le texte brut
-        text_researchers = self._extract_from_text(soup)
-        researchers.extend(text_researchers)
-        
-        # Méthode 3: Rechercher les sections spécifiques
-        section_researchers = self._extract_from_sections(soup)
-        researchers.extend(section_researchers)
-        
-        logger.info(f"Total de {len(researchers)} chercheurs extraits")
+        # Extraction via section Members
+        members = self._extract_members(soup)
+        # Extraction via section Alumni
+        alumni = self._extract_alumni(soup)
+        researchers = members + alumni
+        logger.info(f"Total de {len(researchers)} chercheurs extraits (membres et alumni)")
         return researchers
+    
+    
+    def _extract_members(self, soup: BeautifulSoup) -> List[Researcher]:
+        """Extraire les membres listés dans la section Members"""
+        members = []
+        section = soup.find(id='members')
+        if section:
+            ol = section.find_next('ol')
+            if ol:
+                for li in ol.find_all('li'):
+                    a = li.find('a', href=True)
+                    text = a.get_text(strip=True)
+                    parts = [p.strip() for p in text.split(',', 1)]
+                    nom = parts[0]
+                    prenom = parts[1] if len(parts) > 1 else ""
+                    url = a['href']
+                    members.append(Researcher(nom=nom, prenom=prenom, profile_url=url, status="RePEc Member"))
+        return members
+
+    def _extract_alumni(self, soup: BeautifulSoup) -> List[Researcher]:
+        """Extraire les alumni listés dans la section Alumni"""
+        alumni = []
+        section = soup.find(id='alumni')
+        if section:
+            ol = section.find_next('ol')
+            if ol:
+                for li in ol.find_all('li'):
+                    a = li.find('a', href=True)
+                    text = a.get_text(strip=True)
+                    parts = [p.strip() for p in text.split(',', 1)]
+                    nom = parts[0]
+                    prenom = parts[1] if len(parts) > 1 else ""
+                    url = a['href']
+                    alumni.append(Researcher(nom=nom, prenom=prenom, profile_url=url, status="RePEc Alumni", is_alumni=True))
+        return alumni
     
     def _parse_profile_link(self, link) -> Researcher:
         """Parser un lien de profil individuel avec filtrage"""
