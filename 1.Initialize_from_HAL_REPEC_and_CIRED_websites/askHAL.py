@@ -2,6 +2,7 @@ import requests
 import re
 import csv
 import unicodedata
+import datetime
 from collections import defaultdict
 
 # Structure URLs from HAL API
@@ -72,13 +73,16 @@ with open(output_path, mode="w", encoding="utf-8") as f:
         count = data["count"]
         f.write("BEGIN:VCARD\n")
         f.write("VERSION:4.0\n")
+        f.write("PRODID:-//cv.hal.science//askHAL.py//FR\n")
+        f.write(f"SOURCE:{','.join(urls)}\n")
+        f.write(f"REV:{datetime.datetime.utcnow().replace(microsecond=0).isoformat()}Z\n")
         f.write(f"FN:{preferred_name}\n")
         f.write(f"N:{surname};{given};;;\n")
         if uid:
             f.write(f"UID:{uid}\n")
-            f.write(f"URL;TYPE=HAL:https://hal.science/{uid}\n")
-        f.write(f"NOTE:Publication Count: {count}\n")
-        f.write("END:VCARD\n")
+            f.write(f"URL;TYPE=HAL:https://cv.hal.science/{uid}\n")
+        f.write(f"NOTE:Publications on HAL: {count}\n")
+        f.write("END:VCARD\n\n")
 
 print(f"Saved to {output_path}")
 
