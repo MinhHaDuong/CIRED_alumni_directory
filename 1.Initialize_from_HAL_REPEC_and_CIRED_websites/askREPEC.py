@@ -366,7 +366,7 @@ class RepecCiredLookup:
         print(f"✅ Fichier JSON créé: {filename}")
     
     def export_to_vcard(self, researchers: List[Researcher], filename: str = None):
-        \"\"\"Exporter en VCard\"\"\"
+        """Exporter en VCard"""
         if not filename:
             filename = os.path.splitext(os.path.basename(__file__))[0] + ".vcf"
         with open(filename, 'w', encoding='utf-8') as f:
