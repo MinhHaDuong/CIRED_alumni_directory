@@ -422,9 +422,7 @@ class RepecCiredLookup:
             # 2. Extraire les chercheurs
             researchers = self.extract_researchers(soup)
             
-            # 2.5 Ajouter les chercheurs connus
-            known_researchers = self.add_known_cired_researchers()
-            researchers.extend(known_researchers)
+            # 2.5 Suppression de l'ajout statique des chercheurs connus
             
             # 3. Enrichir les informations
             researchers = self.get_additional_info(researchers)
