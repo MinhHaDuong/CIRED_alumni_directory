@@ -54,16 +54,30 @@ for url in urls:
                 authors[norm_key]["hal_ids"].add(hal_id)
             authors[norm_key]["count"] += count
 
-# Write deduplicated results to CSV
-output_path = "cired_authors_deduplicated.csv"
-with open(output_path, mode="w", newline='', encoding="utf-8") as f:
-    writer = csv.writer(f)
-    writer.writerow(["Full Name", "HAL ID(s)", "Publication Count"])
+# Write deduplicated results to vCard
+output_path = "cired_authors.vcf"
+with open(output_path, mode="w", encoding="utf-8") as f:
     for key in sorted(authors):
         data = authors[key]
         preferred_name = sorted(data["names"])[0]
-        hal_ids = ";".join(sorted(data["hal_ids"])) if data["hal_ids"] else ""
-        writer.writerow([preferred_name, hal_ids, data["count"]])
+        # Séparer nom et prénom
+        parts = preferred_name.split()
+        if len(parts) > 1:
+            surname = parts[-1]
+            given = " ".join(parts[:-1])
+        else:
+            surname = preferred_name
+            given = ""
+        uid = sorted(data["hal_ids"])[0] if data["hal_ids"] else ""
+        count = data["count"]
+        f.write("BEGIN:VCARD\n")
+        f.write("VERSION:3.0\n")
+        f.write(f"FN:{preferred_name}\n")
+        f.write(f"N:{surname};{given};;;\n")
+        if uid:
+            f.write(f"UID:{uid}\n")
+        f.write(f"NOTE:Publication Count: {count}\n")
+        f.write("END:VCARD\n")
 
 print(f"Saved to {output_path}")
 
