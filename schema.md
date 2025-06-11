@@ -147,13 +147,13 @@ It uses custom extensions with the standard `X-` prefix.
 - Custom extensions preserve institutional data for CIRED-aware systems
 - Fallback behavior: Non-CIRED systems show standard contact info
 
-### Versionning
+### Versioning
 - Scraping scripts should hash the contents and set the `UID` property accordingly.
 - Scraping scripts include their name in `PRODID` property.
 - Use repeated `SOURCE` property to link to original public pages scrapped.
 
 ### Privacy & Security
-- Scraping scripts set visiblity to Admin-only
+- Scraping scripts set visibility to Admin-only
 - Only merge vCard variants with the same visibility level.
 - Respect visibility settings when exporting
 
