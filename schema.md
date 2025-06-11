@@ -150,7 +150,7 @@ It uses custom extensions with the standard `X-` prefix.
 ### Versionning
 - Scraping scripts should hash the contents and set the `UID` property accordingly.
 - Scraping scripts include their name in `PRODID` property.
-- Use repeated `SOURCE` property to link to original public pages scrapped.
+- Use repeated `SOURCE` property to link to original public pages scraped.
 
 ### Privacy & Security
 - Scraping scripts set visiblity to Admin-only
