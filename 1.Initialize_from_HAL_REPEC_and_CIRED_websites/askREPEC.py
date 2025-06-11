@@ -96,7 +96,7 @@ def export_to_vcard(researchers, filename="askREPEC.vcf"):
             f.write(f"N:{r.nom};{r.prenom};;;\n")
             if r.org:
                 for org in r.org:
-                    clean_org = org.strip("[]")
+                    clean_org = org.replace(",", "-")
                     f.write(f"ORG:{clean_org}\n")
             if r.profile_url:
                 f.write(f"URL;TYPE=REPEC:{r.profile_url}\n")
