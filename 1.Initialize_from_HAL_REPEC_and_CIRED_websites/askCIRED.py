@@ -43,11 +43,11 @@ class CiredScraper:
     def scrape_cired_website(self):
         """Scrape the main CIRED pages to find person entries"""
         urls = [
-#            "https://www.centre-cired.fr/groupes-de-recherche-equipes/",
+            "https://www.centre-cired.fr/groupes-de-recherche-equipes/",
             "https://www.centre-cired.fr/chaires/",
             "https://www.centre-cired.fr/soutien-a-la-recherche/",
-#            "https://www.centre-cired.fr/doctorants/",
-#            "https://www.centre-cired.fr/chercheurs/",
+            "https://www.centre-cired.fr/doctorants/",
+            "https://www.centre-cired.fr/chercheurs/",
         ]
         
         for url in urls:
