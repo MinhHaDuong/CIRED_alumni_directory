@@ -8,19 +8,26 @@ import sys
 from pathlib import Path
 
 def safe_serialize(vcard):
-    """Serialize vCard safely, fallback if list values present."""
+    """Serialize vCard safely, flatten list values and clean up lines."""
     try:
-        return vcard.serialize()
+        raw = vcard.serialize()
+        if isinstance(raw, list):
+            raw = ''.join(raw)
+        return raw
     except Exception as e:
         print(f"Warning: safe_serialize fallback: {e}", file=sys.stderr)
-        parts = ["BEGIN:VCARD"]
+        lines = ["BEGIN:VCARD"]
         for comp_list in vcard.contents.values():
             for comp in comp_list:
-                line = comp.serialize().strip()
-                if line.upper() not in ["BEGIN:VCARD", "END:VCARD"]:
-                    parts.append(line)
-        parts.append("END:VCARD")
-        return "\r\n".join(parts) + "\r\n"
+                data = comp.serialize()
+                if isinstance(data, list):
+                    data = ''.join(data)
+                for line in data.splitlines():
+                    line = line.strip()
+                    if line.upper() not in ["BEGIN:VCARD", "END:VCARD", ""]:
+                        lines.append(line)
+        lines.append("END:VCARD")
+        return "\r\n".join(lines) + "\r\n"
 
 def read_vcards_from_file(file_path):
     """Read all vCards from a file and return them as a list."""
