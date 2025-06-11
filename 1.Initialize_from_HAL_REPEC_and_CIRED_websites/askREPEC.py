@@ -72,7 +72,9 @@ class RepecCiredLookup:
     def _extract_members(self, soup: BeautifulSoup) -> List[Researcher]:
         """Extraire les membres listés dans la section Members"""
         members = []
-        section = soup.find(id='members')
+        # Trouver la section Members par titre (lien #members)
+        section = soup.find(lambda tag: tag.name in ['h2','h3','h4'] 
+                            and re.search(r'Members', tag.get_text(), re.IGNORECASE))
         if section:
             ol = section.find_next('ol')
             if ol:
@@ -89,7 +91,9 @@ class RepecCiredLookup:
     def _extract_alumni(self, soup: BeautifulSoup) -> List[Researcher]:
         """Extraire les alumni listés dans la section Alumni"""
         alumni = []
-        section = soup.find(id='alumni')
+        # Trouver la section Alumni par titre (lien #alumni)
+        section = soup.find(lambda tag: tag.name in ['h2','h3','h4'] 
+                            and re.search(r'Alumni', tag.get_text(), re.IGNORECASE))
         if section:
             ol = section.find_next('ol')
             if ol:
