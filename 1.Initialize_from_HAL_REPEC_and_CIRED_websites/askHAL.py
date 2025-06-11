@@ -17,19 +17,42 @@ facet_pattern = re.compile(
 
 
 def final_normalize_name(name):
+    """Return a normalized key for a person's name.
+
+    The previous implementation assumed the first token was always the
+    surname. Names such as ``Jean Dupont`` and ``Dupont Jean`` therefore
+    generated different keys. To improve matching we compute both
+    "surname first" and "surname last" forms and return the alphabetically
+    first, mirroring ``merge.py``.
+    """
+
     # Remove accents and lowercase
     name = "".join(
         c for c in unicodedata.normalize("NFD", name) if unicodedata.category(c) != "Mn"
     ).lower()
+
     # Normalize punctuation and spacing
     name = re.sub(r"[^a-z0-9\s]", " ", name)
     name = re.sub(r"\s+", " ", name).strip()
+
     parts = name.split()
     if not parts:
         return ""
-    surname = parts[0]
-    initials = "".join(p[0] for p in parts[1:])
-    return f"{surname} {initials}"
+    if len(parts) == 1:
+        return parts[0]
+
+    # Option 1: surname last
+    surname_last = parts[-1]
+    initials_last = "".join(p[0] for p in parts[:-1])
+    form1 = f"{surname_last} {initials_last}"
+
+    # Option 2: surname first
+    surname_first = parts[0]
+    initials_first = "".join(p[0] for p in parts[1:])
+    form2 = f"{surname_first} {initials_first}"
+
+    # Return the alphabetically earlier one to group both forms together
+    return min(form1, form2)
 
 
 # Data structure to aggregate authors
