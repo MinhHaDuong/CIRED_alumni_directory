@@ -47,7 +47,8 @@ class CiredScraper:
         ]
 
         for url in urls:
-            print(".", end="", flush=True)
+            # Affiche l’URL de la page scrappée pour faciliter le debug
+            print(f"Scraping URL: {url}")
             try:
                 response = self.session.get(url, timeout=15)
                 response.raise_for_status()
