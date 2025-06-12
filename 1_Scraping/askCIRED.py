@@ -47,7 +47,7 @@ class CiredScraper:
         ]
 
         for url in urls:
-            print(f"Scraping directory: {url}")
+            print(".", end="", flush=True)
             try:
                 response = self.session.get(url, timeout=15)
                 response.raise_for_status()
@@ -55,14 +55,22 @@ class CiredScraper:
 
                 # Find person entries in the directory
                 person_entries = self._find_person_entries(soup, url)
-                print(f"Found {len(person_entries)} person entries on {url}")
+                # Supprimer les doublons pour ne pas parser la même page deux fois
+                seen_html = set()
+                unique_entries = []
+                for e in person_entries:
+                    html = str(e)
+                    if html not in seen_html:
+                        seen_html.add(html)
+                        unique_entries.append(e)
+                person_entries = unique_entries
 
 
                 for entry in person_entries:
                     person = self._extract_person_from_entry(entry, url)
                     if person:
                         self.people.append(person)
-                        print(f"Added: {person.prenom} {person.nom}")
+                        print(".", end="", flush=True)
 
                         # If we have a profile URL, scrape detailed info
                         if person.url_profil:
