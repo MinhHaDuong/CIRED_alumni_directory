@@ -7,7 +7,7 @@ import time
 import re
 from urllib.parse import urljoin
 import os
-from datetime import datetime
+from datetime import datetime, UTC
 
 
 @dataclass
@@ -39,24 +39,25 @@ class CiredScraper:
     def scrape_cired_website(self):
         """Scrape the main CIRED pages to find person entries"""
         urls = [
-            #            "https://www.centre-cired.fr/groupes-de-recherche-equipes/",
+            "https://www.centre-cired.fr/groupes-de-recherche-equipes/",
             "https://www.centre-cired.fr/chaires/",
-            # "https://www.centre-cired.fr/soutien-a-la-recherche/",
-            #            "https://www.centre-cired.fr/doctorants/",
-            #            "https://www.centre-cired.fr/chercheurs/",
+            "https://www.centre-cired.fr/soutien-a-la-recherche/",
+            "https://www.centre-cired.fr/doctorants/",
+            "https://www.centre-cired.fr/chercheurs/",
         ]
 
+        seen_urls = set()  # Track profile URLs to avoid duplicate scraping
+
         for url in urls:
-            # Affiche l’URL de la page scrappée pour faciliter le debug
-            print(f"Scraping URL: {url}")
+            print(f"Scraping URL: {url}. ", end="")
             try:
                 response = self.session.get(url, timeout=15)
                 response.raise_for_status()
                 soup = BeautifulSoup(response.text, "html.parser")
 
-                # Find person entries in the directory
                 person_entries = self._find_person_entries(soup, url)
-                # Supprimer les doublons pour ne pas parser la même page deux fois
+
+                # Remove duplicate HTML fragments
                 seen_html = set()
                 unique_entries = []
                 for e in person_entries:
@@ -66,18 +67,21 @@ class CiredScraper:
                         unique_entries.append(e)
                 person_entries = unique_entries
 
-
                 for entry in person_entries:
                     person = self._extract_person_from_entry(entry, url)
                     if person:
+                        # Check if this person's profile was already processed
+                        if person.url_profil and person.url_profil in seen_urls:
+                            continue
                         self.people.append(person)
                         print(".", end="", flush=True)
 
-                        # If we have a profile URL, scrape detailed info
                         if person.url_profil:
+                            seen_urls.add(person.url_profil)
                             self._scrape_person_details(person)
+                print("OK")
 
-                time.sleep(2)  # Be respectful to the server
+                time.sleep(0)  # Be unrespectful to the server
 
             except Exception as e:
                 print(f"Error scraping {url}: {e}")
@@ -114,7 +118,7 @@ class CiredScraper:
         for selector in selectors:
             elements = soup.select(selector)
             if elements:
-                print(f"Found {len(elements)} elements with selector: {selector}")
+                print(f"Found {len(elements) // 2} persons ", end="")
                 person_entries.extend(elements)
 
         # If no specific selectors work, look for links that seem to point to person pages
@@ -319,9 +323,9 @@ class CiredScraper:
         """Scrape detailed information from person's profile page"""
         if not person.url_profil:
             return
-
+        # print(person.url_profil)
         try:
-            print(f"Scraping details for: {person.prenom} {person.nom}")
+            # print(f"Scraping details for: {person.prenom} {person.nom}")
             response = self.session.get(person.url_profil, timeout=15)
             response.raise_for_status()
             soup = BeautifulSoup(response.text, "html.parser")
@@ -380,10 +384,12 @@ class CiredScraper:
                     original_url = self._extract_original_photo_url(img_src)
                     person.photo_url = urljoin(person.url_profil, original_url)
 
-            time.sleep(1)  # Be respectful
+            print(".", end="", flush=True)
+            time.sleep(0)  # Be not respectful
 
         except Exception as e:
-            print(f"Error scraping details for {person.prenom} {person.nom}: {e}")
+            # print(f"Error scraping details for {person.prenom} {person.nom}: {e}")
+            print("!", end="", flush=True)
 
     def add_known_people(self):
         """Add known alumni"""
@@ -425,19 +431,6 @@ class CiredScraper:
 
         self.people = unique_people
 
-    def export_csv(self, filename="cired_people.csv"):
-        """Export to CSV"""
-        if not self.people:
-            print("No people to export")
-            return
-
-        with open(filename, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=asdict(self.people[0]).keys())
-            writer.writeheader()
-            for p in self.people:
-                writer.writerow(asdict(p))
-        print(f"Exported {len(self.people)} people to {filename}")
-
     def export_vcard(self, filename=None):
         """Export to VCard format with all available information"""
         if not filename:
@@ -452,7 +445,7 @@ class CiredScraper:
                 f.write("BEGIN:VCARD\n")
                 f.write("VERSION:4.0\n")
                 f.write(f"PRODID:-//{os.path.basename(__file__)}//\n")
-                f.write(f"REV:{datetime.utcnow().strftime('%Y%m%dT%H%M%SZ')}\n")
+                f.write(f"REV:{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}\n")
                 if p.url_profil:
                     f.write(f"SOURCE:{p.url_profil}\n")
                 f.write(f"FN:{p.prenom} {p.nom}\n")
@@ -501,7 +494,6 @@ def main():
     scraper.clean()
 
     print("Exporting results...")
-    scraper.export_csv()
     scraper.export_vcard()
 
     print(f"\nCompleted! Found {len(scraper.people)} people total.")
