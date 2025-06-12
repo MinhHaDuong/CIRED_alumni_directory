@@ -57,26 +57,6 @@ class CiredScraper:
                 person_entries = self._find_person_entries(soup, url)
                 print(f"Found {len(person_entries)} person entries on {url}")
 
-                # DEBUG: Print details of first few entries
-                print(f"\nDEBUG - First 5 entries from {url}:")
-                for i, entry in enumerate(person_entries[:5]):
-                    # Check for links
-                    links = entry.find_all("a", href=True)
-                    if links:
-                        for j, link in enumerate(links[:3]):  # Show first 3 links
-                            print(
-                                f"  Link {j + 1}: {link.get('href')} -> '{link.get_text(strip=True)[:50]}...'"
-                            )
-
-                    # Check for images
-                    images = entry.find_all("img")
-                    if images:
-                        for j, img in enumerate(images[:3]):
-                            print(
-                                f"  Image {j + 1}: {img.get('src')} (alt: '{img.get('alt', '')}')"
-                            )
-
-                    print("-" * 40)
 
                 for entry in person_entries:
                     person = self._extract_person_from_entry(entry, url)
