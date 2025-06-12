@@ -41,7 +41,7 @@ class CiredScraper:
         urls = [
             #            "https://www.centre-cired.fr/groupes-de-recherche-equipes/",
             "https://www.centre-cired.fr/chaires/",
-            "https://www.centre-cired.fr/soutien-a-la-recherche/",
+            # "https://www.centre-cired.fr/soutien-a-la-recherche/",
             #            "https://www.centre-cired.fr/doctorants/",
             #            "https://www.centre-cired.fr/chercheurs/",
         ]
