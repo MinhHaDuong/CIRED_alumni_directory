@@ -63,7 +63,6 @@ class CiredScraper:
                     # Check for links
                     links = entry.find_all("a", href=True)
                     if links:
-                        print(f"Links found: {len(links)}")
                         for j, link in enumerate(links[:3]):  # Show first 3 links
                             print(
                                 f"  Link {j + 1}: {link.get('href')} -> '{link.get_text(strip=True)[:50]}...'"
@@ -72,7 +71,6 @@ class CiredScraper:
                     # Check for images
                     images = entry.find_all("img")
                     if images:
-                        print(f"Images found: {len(images)}")
                         for j, img in enumerate(images[:3]):
                             print(
                                 f"  Image {j + 1}: {img.get('src')} (alt: '{img.get('alt', '')}')"
