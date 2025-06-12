@@ -6,7 +6,7 @@ from collections import defaultdict
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-INPUT_FILES = ["askCIRED.vcf", "askHAL.vcf", "askREPEC.vcf", "others.vcf"]
+INPUT_FILES = ["askCIRED.vcf", "askHAL.vcf", "askREPEC.vcf", "others.vcf", "askEmail.vcf"]
 
 def normalize_name(name):
     name = "".join(
