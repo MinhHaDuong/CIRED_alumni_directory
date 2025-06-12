@@ -19,7 +19,8 @@ URLS = [
     "&facet.field=structHasAuthIdHal_fs&facet.prefix=135977",
 ]
 
-DEST_ROOT = os.path.join("tests", "fixtures", "html")
+HERE = os.path.dirname(__file__)
+DEST_ROOT = os.path.join(HERE, "fixtures", "html")
 
 for url in URLS:
     print(f"→ Téléchargement de {url}")
