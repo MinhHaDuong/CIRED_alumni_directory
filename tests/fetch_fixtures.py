@@ -27,8 +27,12 @@ visited_urls = set()
 
 for url in URLS:
     print(f"→ Téléchargement de {url}")
-    resp = requests.get(url, timeout=15)
-    resp.raise_for_status()
+    try:
+        resp = requests.get(url, timeout=15)
+        resp.raise_for_status()
+    except requests.exceptions.RequestException as e:
+        print(f"    ! Erreur téléchargement {url}: {e}")
+        continue
 
     parsed = urlparse(url)
     # Prépare un chemin comme tests/fixtures/html/{netloc}/{path}/[filename].html
