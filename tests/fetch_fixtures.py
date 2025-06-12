@@ -8,7 +8,9 @@ from urllib.parse import urlparse
 # Plus besoin de urljoin et BeautifulSoup pour ce script
 
 # 1. Extraire les URL depuis les vCards générées (URL, SOURCE, PHOTO)
-VCF_FILES = ["askCIRED.vcf", "askHAL.vcf", "askREPEC.vcf"]
+HERE = os.path.dirname(__file__)
+VCF_DIR = os.path.join(HERE, os.pardir, "1_Scraping")
+VCF_FILES = [os.path.join(VCF_DIR, name) for name in ["askCIRED.vcf", "askHAL.vcf", "askREPEC.vcf"]]
 URLS = set()
 for vcf in VCF_FILES:
     with open(vcf, "r", encoding="utf-8") as f:
