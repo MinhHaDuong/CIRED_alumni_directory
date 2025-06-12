@@ -3,6 +3,7 @@
 
 import requests
 import os
+import re
 from urllib.parse import urlparse, urljoin
 from bs4 import BeautifulSoup
 
@@ -30,17 +31,25 @@ for url in URLS:
     resp.raise_for_status()
 
     parsed = urlparse(url)
-    # Prépare un chemin comme tests/fixtures/html/{netloc}/{path}/index.html
+    # Prépare un chemin comme tests/fixtures/html/{netloc}/{path}/[filename].html
     domain = parsed.netloc
     path = parsed.path.lstrip("/")
 
-    if not path or path.endswith("/"):
+    # Gestion des requêtes contenant des query params
+    if parsed.query:
+        # Essayer d'extraire le paramètre facet.prefix pour nommage
+        m = re.search(r"facet\\.prefix=([^&]+)", parsed.query)
+        prefix = m.group(1) if m else parsed.query.replace("&", "_").replace("=", "-")
         rel_dir = os.path.join(domain, path)
-        filename = "index.html"
+        # Nom du fichier basé sur le chemin et le prefix
+        filename = f"{path.replace('/', '_')}_{prefix}.html" if path else f"{domain}_{prefix}.html"
     else:
-        rel_dir, name = os.path.split(path)
-        # On ajoute toujours .html
-        filename = name + ".html"
+        if not path or path.endswith("/"):
+            rel_dir = os.path.join(domain, path)
+            filename = "index.html"
+        else:
+            rel_dir, name = os.path.split(path)
+            filename = name + ".html"
 
     full_dir = os.path.join(DEST_ROOT, rel_dir)
     os.makedirs(full_dir, exist_ok=True)
