@@ -6,6 +6,7 @@ from collections import defaultdict
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
+INPUT_FILES = ["askCIRED.vcf", "askHAL.vcf", "askREPEC.vcf", "others.vcf"]
 
 def normalize_name(name):
     name = "".join(
@@ -63,7 +64,6 @@ FN_EXPANSION_WHITELIST = {
     "Hourcade Jc": "Jean-Charles Hourcade",
 }
 FN_NORMALIZATION_WHITELIST = {
-    # Handle variations with and without periods, different spacing
     "Cassen C.": "cassen christophe",
     "Cassen C": "cassen christophe",
     "Levrel H.": "levrel harold",
@@ -204,7 +204,7 @@ def debug_fn_values(all_contacts):
 # Ingest
 all_contacts = []
 sources = []
-for vcf_file in ["askCIRED.vcf", "askHAL.vcf", "askREPEC.vcf"]:
+for vcf_file in INPUT_FILES:
     print(f"Ingesting {vcf_file}")
     with open(vcf_file, "r", encoding="utf-8") as f:
         vcards = list(vobject.readComponents(f.read()))
