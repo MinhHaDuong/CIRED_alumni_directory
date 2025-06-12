@@ -1,20 +1,60 @@
 #!/usr/bin/env python3
+"""
+askCIRED.py
+
+This module provides functionality to scrape and extract information about people affiliated with the CIRED research center from its website and export the data in VCard format. It includes classes and methods to:
+
+- Scrape multiple CIRED web pages for staff, researchers, and alumni.
+- Parse and deduplicate person entries, extracting details such as name, status, expertise, profile URL, photo, email, Google Scholar, CV, and HAL links.
+- Prioritize and clean extracted data, including email selection and photo URL normalization.
+- Add known alumni manually to the dataset.
+- Export the collected data to a VCard (.vcf) file for easy import into contact management systems.
+
+Classes:
+    Person: Data class representing a person with various attributes.
+    CiredScraper: Main class for scraping, processing, and exporting CIRED people data.
+
+Functions:
+    main(): Orchestrates the scraping, cleaning, and exporting process.
+
+Usage:
+    Run this script directly to scrape the CIRED website and export the results to a VCard file.
+"""
+
+from datetime import datetime, UTC
+from dataclasses import dataclass
+import re
 import requests
 from bs4 import BeautifulSoup
-from dataclasses import dataclass, asdict
-import csv
-import time
-import re
 from urllib.parse import urljoin
-import os
-from datetime import datetime, UTC
+
+SCRIPT_NAME = "askCIRED.py"
+DEFAULT_VCARD_FILENAME = "askCIRED.vcf"
 
 
 @dataclass
 class Person:
+    """
+    Data class representing a person affiliated with CIRED.
+
+    Attributes:
+        nom (str): Last name of the person.
+        prenom (str): First name of the person.
+        statut (str): Status or job title.
+        expertise (str): Area of expertise.
+        url_profil (str): URL to the person's profile page.
+        photo_url (str): URL to the person's photo.
+        email (str): Email address.
+        google_scholar_url (str): Google Scholar profile URL.
+        cv_url (str): URL to the person's CV.
+        hal_url (str): HAL (Hyper Articles en Ligne) profile URL.
+        affiliation_actuelle (str): Current affiliation (e.g., "CIRED" or "Ancien CIRED").
+    """
+
     nom: str
     prenom: str = ""
     statut: str = ""
+    history: str = ""
     expertise: str = ""
     url_profil: str = ""
     photo_url: str = ""
@@ -26,6 +66,23 @@ class Person:
 
 
 class CiredScraper:
+    """
+    Scraper class for extracting and managing CIRED people data.
+
+    Methods:
+        __init__(): Initializes the scraper with session and base URL.
+        scrape_cired_website(): Scrapes main CIRED pages for person entries.
+        _find_person_entries(soup, base_url): Finds HTML fragments describing each person entry.
+        _extract_original_photo_url(url): Extracts the original photo URL from optimization/CDN services.
+        _select_best_email(emails, person): Selects the best email address for a person.
+        _extract_hal_url(hal_url): Extracts and normalizes the HAL profile URL.
+        _extract_person_from_entry(entry, base_url): Extracts person information from an HTML entry.
+        _scrape_person_details(person): Scrapes detailed information from a person's profile page.
+        add_known_people(): Adds a list of known alumni to the people list.
+        clean(): Cleans and deduplicates the people list.
+        export_vcard(filename=None): Exports the people data to a VCard (.vcf) file.
+    """
+
     def __init__(self):
         self.session = requests.Session()
         self.session.headers.update(
@@ -81,8 +138,6 @@ class CiredScraper:
                             self._scrape_person_details(person)
                 print("OK")
 
-                time.sleep(0)  # Be unrespectful to the server
-
             except Exception as e:
                 print(f"Error scraping {url}: {e}")
 
@@ -118,6 +173,7 @@ class CiredScraper:
         for selector in selectors:
             elements = soup.select(selector)
             if elements:
+                # CIRED website gives two entries per person
                 print(f"Found {len(elements) // 2} persons ", end="")
                 person_entries.extend(elements)
 
@@ -385,28 +441,10 @@ class CiredScraper:
                     person.photo_url = urljoin(person.url_profil, original_url)
 
             print(".", end="", flush=True)
-            time.sleep(0)  # Be not respectful
 
-        except Exception as e:
+        except Exception:
             # print(f"Error scraping details for {person.prenom} {person.nom}: {e}")
             print("!", end="", flush=True)
-
-    def add_known_people(self):
-        """Add known alumni"""
-        known_alumni = [
-            ("Ignacy", "Sachs", "Founding Director", "1973–1987"),
-            ("Henri", "Waisman", "Former Researcher", "Economics"),
-            ("Julie", "Rozenberg", "Former Researcher", "Economics"),
-            ("Olivier", "Sassi", "Former Researcher", "Modeling"),
-            ("Renaud", "Crassous", "Former Researcher", "Economics"),
-            ("Vincent", "Gitz", "Former Researcher", "Agriculture"),
-            ("Marco Paulo", "Vianna Franco", "Former Researcher", "Economics"),
-        ]
-
-        for prenom, nom, statut, expertise in known_alumni:
-            self.people.append(
-                Person(nom=nom, prenom=prenom, statut=statut, expertise=expertise)
-            )
 
     def clean(self):
         """Clean and deduplicate the people list"""
@@ -431,11 +469,8 @@ class CiredScraper:
 
         self.people = unique_people
 
-    def export_vcard(self, filename=None):
+    def export_vcard(self, filename=DEFAULT_VCARD_FILENAME):
         """Export to VCard format with all available information"""
-        if not filename:
-            filename = os.path.splitext(os.path.basename(__file__))[0] + ".vcf"
-
         if not self.people:
             print("No people to export")
             return
@@ -444,7 +479,7 @@ class CiredScraper:
             for p in self.people:
                 f.write("BEGIN:VCARD\n")
                 f.write("VERSION:4.0\n")
-                f.write(f"PRODID:-//{os.path.basename(__file__)}//\n")
+                f.write(f"PRODID:-//{SCRIPT_NAME}//\n")
                 f.write(f"REV:{datetime.now(UTC).strftime('%Y%m%dT%H%M%SZ')}\n")
                 if p.url_profil:
                     f.write(f"SOURCE:{p.url_profil}\n")
@@ -457,6 +492,9 @@ class CiredScraper:
 
                 if p.email:
                     f.write(f"EMAIL:{p.email}\n")
+
+                if p.history:
+                    f.write(f"X-CIRED-HISTORY:{p.history}\n")
 
                 if p.url_profil:
                     f.write(f"URL;TYPE=INSTITUTIONAL:{p.url_profil}\n")
@@ -482,10 +520,16 @@ class CiredScraper:
 
 
 def main():
-    scraper = CiredScraper()
+    """
+    Orchestrate the scraping, cleaning, and exporting process.
 
-    print("Adding known alumni...")
-    scraper.add_known_people()
+    Steps:
+        1. Scrapes the CIRED website for current staff and researchers.
+        2. Cleans and deduplicates the collected data.
+        3. Exports the results to a VCard file.
+        4. Prints a summary of the results.
+    """
+    scraper = CiredScraper()
 
     print("Scraping CIRED website...")
     scraper.scrape_cired_website()
@@ -496,20 +540,13 @@ def main():
     print("Exporting results...")
     scraper.export_vcard()
 
-    print(f"\nCompleted! Found {len(scraper.people)} people total.")
-
-    # Print summary
-    current_count = sum(1 for p in scraper.people if p.affiliation_actuelle == "CIRED")
-    alumni_count = sum(
-        1 for p in scraper.people if p.affiliation_actuelle == "Ancien CIRED"
-    )
-    with_email = sum(1 for p in scraper.people if p.email)
-    with_photo = sum(1 for p in scraper.people if p.photo_url)
-
-    print(f"- Current staff: {current_count}")
-    print(f"- Alumni: {alumni_count}")
-    print(f"- With email: {with_email}")
-    print(f"- With photo: {with_photo}")
+    print("\nCompleted! Summary of results:")
+    print(f"- Persons found: {len(scraper.people)}")
+    print(f"- With email:    {sum(1 for p in scraper.people if p.email)}")
+    print(f"- With photo:    {sum(1 for p in scraper.people if p.photo_url)}")
+    print(f"- With profile:  {sum(1 for p in scraper.people if p.url_profil)}")
+    print(f"- With CV:       {sum(1 for p in scraper.people if p.cv_url)}")
+    print(f"- With idHAL:    {sum(1 for p in scraper.people if p.hal_url)}")
 
 
 if __name__ == "__main__":
