@@ -12,7 +12,6 @@ import unicodedata
 import re
 import logging
 from collections import defaultdict
-from typing import Tuple
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
@@ -229,7 +228,7 @@ def debug_fn_values(all_contacts: list[vobject.vCard]) -> None:
     print("=" * 30 + "\n")
 
 
-def ingest_contacts(input_files: list[str]) -> Tuple[list[vobject.vCard], list[str]]:
+def ingest_contacts(input_files: list[str]) -> tuple[list[vobject.vCard], list[str]]:
     """
     Ingest vCards from a list of input files, applying FN expansion whitelist.
 
