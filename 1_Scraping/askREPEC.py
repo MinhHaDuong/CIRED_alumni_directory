@@ -13,7 +13,7 @@ class Researcher:
     prenom: str
     profile_url: str
     is_alumni: bool
-    org: list[str] = None
+    org: list[str] | None = None
     personal_url: Optional[str] = None
 
 

@@ -44,7 +44,7 @@ MAIL_DIR = "/home/haduong/.mail/Archives"
 EMAIL_PATTERN = r"[a-zA-Z0-9._%+-]+@centre-cired\.fr"
 
 
-def decode_display_name(name):
+def decode_display_name(name: str) -> str:
     try:
         return str(make_header(decode_header(name)))
     except Exception:
@@ -59,13 +59,14 @@ def extract_emails_from_file(filepath):
                     # Remove the header name (e.g., "To: ") for getaddresses
                     header_value = line.split(":", 1)[1].strip()
                     for name, email in getaddresses([header_value]):
-                        email = email.lower()   # Normalize email to lowercase
+                        email = email.lower()  # Normalize email to lowercase
                         if re.fullmatch(EMAIL_PATTERN, email):
                             decoded_name = decode_display_name(name)
                             emails.add((decoded_name, email))
     except Exception as e:
         print(f"Error reading {filepath}: {e}")
     return emails
+
 
 def collect_emails(mail_dir):
     file_paths = []
@@ -79,10 +80,12 @@ def collect_emails(mail_dir):
     print(f"Number of files to read: {total_files}")
 
     all_emails = set()
+    max_workers = min(64, (os.cpu_count() or 8) * 4)  # Large pool for I/O
     try:
-        with concurrent.futures.ThreadPoolExecutor() as executor:
-            results = executor.map(extract_emails_from_file, file_paths)
-            for idx, emails in enumerate(results, 1):
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            futures = [executor.submit(extract_emails_from_file, fp) for fp in file_paths]
+            for idx, future in enumerate(concurrent.futures.as_completed(futures), 1):
+                emails = future.result()
                 all_emails.update(emails)
                 if idx % 500 == 0 or idx == total_files:
                     percent = (idx / total_files) * 100
@@ -92,30 +95,41 @@ def collect_emails(mail_dir):
         return sorted(all_emails)
     return sorted(all_emails)
 
+
 def count_diacritics(s):
-    return sum(1 for c in unicodedata.normalize('NFD', s) if unicodedata.category(c) == 'Mn')
+    return sum(
+        1 for c in unicodedata.normalize("NFD", s) if unicodedata.category(c) == "Mn"
+    )
+
 
 def is_title_case(s):
     # Returns True if all words are title-cased (first letter uppercase, rest lowercase)
     return all(word[:1].isupper() and word[1:].islower() for word in s.split() if word)
 
+
 def is_initialized(form, full):
     # "A. Lastname" vs "Adrien Lastname"
     parts = form.split()
-    if len(parts) < 2 or '.' not in parts[0]:
+    if len(parts) < 2 or "." not in parts[0]:
         return False
     initial = parts[0][0].lower()
     full_parts = full.split()
     if not full_parts:
         return False
-    return initial == full_parts[0][0].lower() and parts[-1].lower() == full_parts[-1].lower()
+    return (
+        initial == full_parts[0][0].lower()
+        and parts[-1].lower() == full_parts[-1].lower()
+    )
 
-def is_all_caps(s):
+
+def is_all_caps(s: str) -> bool:
     return s.isupper()
 
-def normalize_family_name(s):
+
+def normalize_family_name(s: str) -> str:
     # Lowercase and remove dashes and spaces
     return s.lower().replace("-", "").replace(" ", "")
+
 
 def filter_names(names, email=None):
     names = set(names)
@@ -155,7 +169,7 @@ def filter_names(names, email=None):
 
     # Prefer forms where the normalized last name (from email) matches the normalized last word
     if email:
-        last_name = normalize_family_name(email.split('@')[0].split('.')[-1])
+        last_name = normalize_family_name(email.split("@")[0].split(".")[-1])
         preferred = set()
         for n in names:
             last_word = n.split()[-1]
@@ -163,7 +177,7 @@ def filter_names(names, email=None):
                 preferred.add(n)
         if preferred:
             # If both hyphenated and non-hyphenated forms exist, prefer hyphenated (anywhere in the last word)
-            hyphenated = {n for n in preferred if '-' in n.split()[-1]}
+            hyphenated = {n for n in preferred if "-" in n.split()[-1]}
             if hyphenated:
                 names = hyphenated
             else:
@@ -172,8 +186,8 @@ def filter_names(names, email=None):
     # Handle "Lastname, Firstname" -> "Firstname Lastname"
     comma_processed = set()
     for n in names:
-        if ',' in n:
-            parts = [p.strip() for p in n.split(',', 1)]
+        if "," in n:
+            parts = [p.strip() for p in n.split(",", 1)]
             if len(parts) == 2:
                 # Reorder and titlecase both parts
                 comma_processed.add(f"{parts[1].title()} {parts[0].title()}")
@@ -189,7 +203,7 @@ def filter_names(names, email=None):
         if len(parts) == 2:
             # Case 1: first part is all caps and matches email last name
             if parts[0].isupper() and email:
-                last_name = normalize_family_name(email.split('@')[0].split('.')[-1])
+                last_name = normalize_family_name(email.split("@")[0].split(".")[-1])
                 if normalize_family_name(parts[0]) == last_name:
                     # Move it to the end and titlecase both
                     processed.add(f"{parts[1].title()} {parts[0].title()}")
@@ -207,19 +221,22 @@ def filter_names(names, email=None):
         return {"Minh Ha-Duong"}
     if email == "hourcade@centre-cired.fr":
         return {"Jean-Charles Hourcade"}
+    if email == "calas@centre-cired.fr":
+        return {"Calas"}
 
     # Title case if necessary
     if len(names) == 1:
-       single = next(iter(names))
-       if single.islower():
-           names = {single.title()}
+        single = next(iter(names))
+        if single.islower():
+            names = {single.title()}
 
     return names
+
 
 def clean_name(name, email):
     """Remove unwanted characters and drop names containing the email address."""
     name = name.strip(" '\"\t[]()")
-    for unwanted in ["_POP local", "_poplocal", " - CIRED"]:
+    for unwanted in ["_POP local", "_poplocal", " - CIRED", " CIRED", " Cired"]:
         name = name.replace(unwanted, "")
     # Remove if the email address is a substring (case-insensitive)
     if name and email.lower() in name.lower():
@@ -230,13 +247,18 @@ def clean_name(name, email):
 def group_emails(emails):
     grouped = defaultdict(set)
     for name, email in emails:
-        skip_prefixes = ["liste-", "cired-", "resident", "summer.", "hoby."]
-        if any(email.startswith(prefix) for prefix in skip_prefixes):
+        skip_prefixes = ["liste", "rndialogue-", "cired-", "resident", "summer.", "hoby.", "sympa", "copil"]
+        skip_emails = {"cired@centre-cired.fr"}
+        email_lower = email.lower()
+        if any(email_lower.startswith(prefix) for prefix in skip_prefixes):
             continue  # Skip mailing lists
+        if email_lower in skip_emails:
+            continue  # Skip specific unwanted addresses
         cleaned = clean_name(name, email)
         if cleaned:
             grouped[email].add(cleaned)
     return grouped
+
 
 def print_emails(grouped):
     for email, names in sorted(grouped.items()):
@@ -244,10 +266,13 @@ def print_emails(grouped):
         name_list = ", ".join(sorted(n for n in filtered_names if n))
         print(f"{email}: {name_list}" if name_list else email)
         # Debug: print the original list of names for this email
+
+
 #        print(f"  [original: {', '.join(sorted(names))}]")
 
+
 def print_vcards(emails, output_file=None):
-    now = datetime.now(UTC).isoformat(timespec='seconds') + "Z"
+    now = datetime.now(UTC).isoformat(timespec="seconds") + "Z"
     lines = []
     for email, names in sorted(emails.items()):
         filtered_names = filter_names(names, email=email)

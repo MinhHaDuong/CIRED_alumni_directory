@@ -3,6 +3,7 @@ import re
 import csv
 import unicodedata
 from collections import defaultdict
+from typing import TypedDict
 
 # Structure URLs from HAL API
 urls = [
@@ -33,7 +34,12 @@ def final_normalize_name(name):
 
 
 # Data structure to aggregate authors
-authors = defaultdict(lambda: {"names": set(), "hal_ids": set(), "count": 0})
+class AuthorInfo(TypedDict):
+    names: set[str]
+    hal_ids: set[str]
+    count: int
+
+authors : defaultdict[str, AuthorInfo] = defaultdict(lambda: {"names": set(), "hal_ids": set(), "count": 0})
 
 # Query and parse both URLs
 for url in urls:
