@@ -1,3 +1,8 @@
+ruff
+mypy
 beautifulsoup4
+types-beautifulsoup4
 requests
 vobject
+types-vobject
+

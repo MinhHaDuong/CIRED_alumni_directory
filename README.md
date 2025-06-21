@@ -5,11 +5,13 @@ This repository contains a set of Python scripts for building a contact director
 ## Repository layout
 
 ```
-1_Scraping/        scraping scripts
+1_Scrape/        scraping scripts
     askCIRED.py    - scrape cired.fr for staff and alumni
     askHAL.py      - query the HAL API for CIRED authors
     askREPEC.py    - scrape RePEc for member/alumni data
-    merge.py       - merge the individual vCard files
+2_Merge/
+   merge.py        - merge the individual vCard files
+3_Enrich/
 requirements.txt   Python package requirements
 schema.md          vCard schema and custom field documentation
 ```
