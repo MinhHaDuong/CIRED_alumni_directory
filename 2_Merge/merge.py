@@ -6,6 +6,7 @@ and performs verification for inverted full names (FN).
 
 HDM, 2025-06-21
 """
+
 import unicodedata
 import re
 import os
@@ -18,10 +19,10 @@ import vobject
 from vcard_types import TypedVCard
 
 # Set locale for collation and sorting
-locale.setlocale(locale.LC_COLLATE, 'fr_FR.UTF-8')
+locale.setlocale(locale.LC_COLLATE, "fr_FR.UTF-8")
 logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
 
-INPUT_DIR = "../1_Scrape"
+INPUT_DIR = "1_Scrape"
 
 INPUT_FILES_NAMES: list[str] = [
     "askCIRED.vcf",
@@ -37,6 +38,8 @@ INPUT_FILES = [
     for fname in INPUT_FILES_NAMES
     if os.path.isfile(os.path.join(INPUT_DIR, fname))
 ]
+
+OUTPUT_FILE = "2_Merge/merged.vcf"
 
 
 def normalize_name(name: str) -> str:
@@ -155,10 +158,23 @@ N_SUBSTITUTION_WHITELIST = {
     "Adrien Comte": ["Comte", "Adrien", "", "", ""],
     "Adrien Vogt-Schilb": ["Vogt-Schilb", "Adrien", "", "", ""],
     "Tamara Ben-Ari": ["Ben-Ari", "Tamara", "", "", ""],
-    "Marcos Aurélio Vasconcelos De Freitas": ["Freitas", "Marcos", "Aurélio Vasconcelos de", "", ""],
-    "Annick Osthoff Ferreira de Barros": ["Barros", "Annick", "Osthoff Ferreira de", "", ""],
+    "Marcos Aurélio Vasconcelos De Freitas": [
+        "Freitas",
+        "Marcos",
+        "Aurélio Vasconcelos de",
+        "",
+        "",
+    ],
+    "Annick Osthoff Ferreira de Barros": [
+        "Barros",
+        "Annick",
+        "Osthoff Ferreira de",
+        "",
+        "",
+    ],
     "Roberto Ferreira da Cunha": ["Cunha", "Roberto", "Ferreira da", "", ""],
 }
+
 
 def normalize_fn(vcard: TypedVCard) -> str:
     """
@@ -199,7 +215,6 @@ def merge_vcards(vcards: list[TypedVCard], sources: list[str]) -> TypedVCard:
     """Merge a list of vCards and their sources into a single vCard, combining fields and attributing notes/history."""
     base: TypedVCard = vcards[0]
     merged = cast(TypedVCard, vobject.vCard())
-
 
     # Use expanded name if available
     if hasattr(base, "fn"):
@@ -305,7 +320,7 @@ def ingest_contacts(input_files: list[str]) -> tuple[list[TypedVCard], list[str]
                             given=parts[1],
                             additional=parts[2],
                             prefix=parts[3],
-                            suffix=parts[4]
+                            suffix=parts[4],
                         )
                 all_contacts.append(vcard)
                 sources.append(vcf_file)
@@ -348,7 +363,7 @@ def merge_all_contacts(
 
     merged_contacts.sort(
         key=lambda v: locale.strxfrm(v.fn.value) if hasattr(v, "fn") else ""
-)
+    )
     return merged_contacts
 
 
@@ -422,6 +437,7 @@ def verify_start_similar(vcf_path: str = "merged.vcf") -> int:
         print("No FN pairs with identical first two parts found.")
     return len(similar_pairs)
 
+
 def test_fn_contains_cired(all_contacts, sources):
     """Print and count all vCards whose FN contains 'cired' (case-insensitive)."""
     matches = []
@@ -460,8 +476,8 @@ def test_fn_form(merged_vcf_path: str = "merged.vcf") -> int:
             for p in parts
         )
         has_single_letter = any(
-            (len(p) == 1 and p.isascii() and p.isalpha()) or
-            (len(p) == 2 and p[0].isascii() and p[0].isalpha() and p[1] == ".")
+            (len(p) == 1 and p.isascii() and p.isalpha())
+            or (len(p) == 2 and p[0].isascii() and p[0].isalpha() and p[1] == ".")
             for p in parts
         )
 
@@ -471,7 +487,9 @@ def test_fn_form(merged_vcf_path: str = "merged.vcf") -> int:
             matches.append((fn, has_allcaps, has_single_letter, has_single_part))
 
     if matches:
-        print("\n=== FNs in merged.vcf with ALLCAPS parts (2+ letters, not 'R.'), single-letter parts, or single-word names ===")
+        print(
+            "\n=== FNs in merged.vcf with ALLCAPS parts (2+ letters, not 'R.'), single-letter parts, or single-word names ==="
+        )
         for fn, has_allcaps, has_single_letter, has_single_part in matches:
             flags = []
             if has_allcaps:
@@ -486,17 +504,20 @@ def test_fn_form(merged_vcf_path: str = "merged.vcf") -> int:
         print("No FNs with ALLCAPS, single-letter parts, or single-word names found.")
     return len(matches)
 
+
 def main() -> None:
     """Ingest, debug, group, merge, write, and verify contacts."""
     all_contacts, sources = ingest_contacts(INPUT_FILES)
     debug_fn_values(all_contacts)
     grouped, grouped_sources = group_contacts(all_contacts, sources)
     merged_contacts = merge_all_contacts(grouped, grouped_sources)
-    write_merged_contacts(merged_contacts)
-    verify_inverted_fn_pairs()
-    verify_start_similar()
+
+    write_merged_contacts(merged_contacts, OUTPUT_FILE)
+
+    verify_inverted_fn_pairs(OUTPUT_FILE)
+    verify_start_similar(OUTPUT_FILE)
     test_fn_contains_cired(all_contacts, sources)
-    test_fn_form()
+    test_fn_form(OUTPUT_FILE)
 
 
 if __name__ == "__main__":
