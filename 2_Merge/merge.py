@@ -7,6 +7,7 @@ and performs verification for inverted full names (FN).
 HDM, 2025-06-21
 """
 
+import sys
 import unicodedata
 import re
 import os
@@ -16,7 +17,8 @@ from typing import cast
 import locale
 import vobject
 
-from vcard_types import TypedVCard
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import TypedVCard
 
 # Set locale for collation and sorting
 locale.setlocale(locale.LC_COLLATE, "fr_FR.UTF-8")
@@ -437,8 +439,7 @@ def verify_start_similar(vcf_path: str = "merged.vcf") -> int:
         print("No FN pairs with identical first two parts found.")
     return len(similar_pairs)
 
-
-def test_fn_contains_cired(all_contacts, sources):
+def test_fn_contains_cired(all_contacts: list[TypedVCard], sources: list[str]) -> int:
     """Print and count all vCards whose FN contains 'cired' (case-insensitive)."""
     matches = []
     for v, src in zip(all_contacts, sources):

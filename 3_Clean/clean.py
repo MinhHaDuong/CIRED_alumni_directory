@@ -18,23 +18,15 @@ Usage examples:
 """
 
 import sys
+import os
 import argparse
 import logging
 import re
 import requests
-import vobject
 from urllib.parse import urlparse
-from typing import TextIO
-from vobject.base import Component
 
-
-# --- Logging setup ---
-def setup_logging(verbose: bool = False) -> None:
-    """Configure logging to output INFO level messages to stderr."""
-    level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level, format="%(asctime)s %(levelname)s: %(message)s", stream=sys.stderr
-    )
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import ingest_vcards, TypedVCard, setup_logging, get_vcard_identifier
 
 
 def parse_args() -> argparse.Namespace:
@@ -64,6 +56,7 @@ def parse_args() -> argparse.Namespace:
 
 
 # --- Cleaning ---
+
 def is_obsolete_email(email_value: str, filter_domain: str) -> bool:
     """Return True if the email contains the obsolete domain."""
     email_str = str(email_value).lower()
@@ -111,21 +104,7 @@ def url_is_unavailable(url: str, timeout: int = 3) -> bool:
 
 # --- Card Processing ---
 
-
-def get_vcard_identifier(vcard: Component) -> str:
-    """Extract a human-readable identifier from a vCard for logging."""
-    # Try to get name, email, or org for identification
-    if "fn" in vcard.contents:
-        return str(vcard.fn.value)
-    elif "email" in vcard.contents:
-        return str(vcard.email.value)
-    elif "org" in vcard.contents:
-        return str(vcard.org.value)
-    else:
-        return "Unknown contact"
-
-
-def process_vcard(vcard: Component, args: argparse.Namespace) -> str:
+def process_vcard(vcard: TypedVCard, args: argparse.Namespace) -> str:
     """
     Process a single vCard object:
     - Removes obsolete emails (logs removal, but never drops the card)
@@ -176,20 +155,8 @@ def process_vcard(vcard: Component, args: argparse.Namespace) -> str:
     return entry_text
 
 
-def ingest_vcards(stdin: TextIO) -> list[Component]:
-    """
-    Read VCF data from stdin and return a list of vCard objects.
-    """
-    vcf_text = stdin.read()
-    if not vcf_text.strip():
-        logging.error("No VCF data provided on stdin")
-        return []
-    vcards = list(vobject.readComponents(vcf_text))
-    logging.info(f"Read {len(vcards)} vCard(s)")
-    return vcards
 
-
-def process_vcards(vcards: list[Component], args: argparse.Namespace) -> None:
+def process_vcards(vcards: list[TypedVCard], args: argparse.Namespace) -> None:
     """
     Process a list of vCard objects and print results to stdout.
     Applies limit if specified in args. Never drops a card: if processing fails, outputs the original.
