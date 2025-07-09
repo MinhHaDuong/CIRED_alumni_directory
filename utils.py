@@ -1,4 +1,5 @@
 import sys
+from turtle import title
 from typing import TextIO, Protocol, Any, cast
 import logging
 import vobject
@@ -19,6 +20,7 @@ class TypedVCard(Protocol):
     email: Any
     org: Any
     url: Any
+    title: Any
 
     def add(self, name: str) -> Any: ...
     def serialize(self) -> str: ...

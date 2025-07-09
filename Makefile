@@ -29,7 +29,7 @@ $(CLEANED_FILE): $(MERGED_FILE) $(CLEAN_SCRIPT)
 	cat $(MERGED_FILE) | $(PY) $(CLEAN_SCRIPT) > $@
 
 $(ENRICHED_FILE): $(CLEANED_FILE) $(ENRICH_SCRIPT)
-	cat $(CLEANED_FILE) | $(PY) $(ENRICH_SCRIPT) > $@
+	cat $(CLEANED_FILE) | $(PY) $(ENRICH_SCRIPT) --exec > $@
 
 # Lancer la suite de tests
 .PHONY: test
