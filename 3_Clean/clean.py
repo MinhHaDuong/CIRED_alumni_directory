@@ -189,7 +189,7 @@ def process_vcards(vcards: list[TypedVCard], args: argparse.Namespace) -> None:
 
 
 def main() -> int:
-    """Clean and enrich vCards from stdin."""
+    """Clean vCards from stdin."""
     args = parse_args()
     setup_logging(args.verbose)
     vcards = ingest_vcards(sys.stdin)
