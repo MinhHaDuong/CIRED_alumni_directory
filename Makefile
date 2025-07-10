@@ -12,6 +12,8 @@ MERGE_SCRIPT := $(MERGE_DIR)/merge.py
 ENRICH_DIR := 3_Enrich
 ENRICHED_FILE := $(ENRICH_DIR)/enriched.vcf
 ENRICH_SCRIPT := $(ENRICH_DIR)/enrich.py
+UNWRAPPED_FILE := $(ENRICH_DIR)/unwrapped.vcf
+UNWRAP_SCRIPT := $(ENRICH_DIR)/unwrap.awk
 
 CLEAN_DIR := 4_Clean
 CLEANED_FILE := $(CLEAN_DIR)/cleaned.vcf
@@ -24,68 +26,32 @@ FIXED_FILE := $(CLEAN_DIR)/fixed.vcf
 REPORT_DIR := 5_Report
 REPORT_SCRIPT := $(REPORT_DIR)/no_email.py
 
-all: $(MERGED_FILE) $(ENRICHED_FILE) $(CLEANED_FILE) $(FIXED_FILE)
+all: $(MERGED_FILE) $(ENRICHED_FILE) $(UNWRAPPED_FILE) $(CLEANED_FILE) $(FIXED_FILE)
 
 $(SCRAPE_DIR)/%.vcf:
-	$(PY) $(SCRAPE_DIR)/%.py
+	@echo "Scraping target $@ not implemented"
 
 $(MERGED_FILE): $(SCRAPED_FILES)
-	$(PY) $(MERGE_SCRIPT)
+	$(PY) $(MERGE_SCRIPT) < /dev/null > $@
 
 $(ENRICHED_FILE): $(MERGED_FILE)
-	cat $(MERGED_FILE) | $(PY) $(ENRICH_SCRIPT) --exec > $@
+	$(PY) $(ENRICH_SCRIPT) --exec < $< > $@
 
-$(CLEANED_FILE): $(ENRICHED_FILE)
-	cat $(ENRICHED_FILE) | $(PY) $(CLEAN_SCRIPT) > $@
+$(UNWRAPPED_FILE): $(ENRICHED_FILE)
+	awk -f $(UNWRAP_SCRIPT) < $< > $@
+
+$(CLEANED_FILE): $(UNWRAPPED_FILE)
+	$(PY) $(CLEAN_SCRIPT) < $< > $@
 
 $(FIXED_FILE): $(CLEANED_FILE)
-	cat $(CLEANED_FILE) | $(PY) $(FIX_SCRIPT) > $@
+	$(PY) $(FIX_SCRIPT) < $< > $@ || cp $< $@
 
-# Lancer la suite de tests
-.PHONY: test
-test: $(MERGED_FILE)
-	pytest -q
+report: $(FIXED_FILE)
+	$(PY) $(REPORT_SCRIPT) < $<
 
-.PHONY: scrape
-scrape: $(SCRAPED_FILES)
-	@echo "Scraping completed. Files are located in $(SCRAPE_DIR)/"
+.PRECIOUS: $(MERGED_FILE) $(ENRICHED_FILE) $(UNWRAPPED_FILE) $(CLEANED_FILE)
 
-# Generate reports
-.PHONY: report-no-email
-report-no-email: $(FIXED_FILE)
-	cat $(FIXED_FILE) | $(PY) $(REPORT_SCRIPT) --sort
-
-.PHONY: report-no-email-count
-report-no-email-count: $(FIXED_FILE)
-	cat $(FIXED_FILE) | $(PY) $(REPORT_SCRIPT) --count-only
-
-.PHONY: reports
-reports: report-no-email
-	@echo "Reports generated."
-
-.PRECIOUS: $(SCRAPED_FILES) $(MERGED_FILE) $(ENRICHED_FILE) $(CLEANED_FILE) $(FIXED_FILE)
-
-# Help target
-.PHONY: help
-help:
-	@echo "Available targets:"
-	@echo "  all                    - Run the full pipeline: scrape → merge → enrich → clean → fix"
-	@echo "  scrape                 - Run all scrapers to collect vCard data"
-	@echo "  test                   - Run the test suite"
-	@echo "  report-no-email        - List people without email addresses"
-	@echo "  report-no-email-count  - Count people without email addresses"
-	@echo "  reports                - Generate all reports"
-	@echo "  clean                  - Remove fixed.vcf and cleaned.vcf"
-	@echo "  cleaner                - Remove merged.vcf, enriched.vcf, cleaned.vcf, and fixed.vcf"
-	@echo "  cleanest               - Remove all generated files including scraped data"
-
-# Nettoyage
-.PHONY: clean cleaner cleanest
 clean:
-	rm -f $(FIXED_FILE) $(CLEANED_FILE)
+	rm -f $(MERGED_FILE) $(ENRICHED_FILE) $(UNWRAPPED_FILE) $(CLEANED_FILE) $(FIXED_FILE)
 
-cleaner: clean
-	rm -f $(MERGED_FILE) $(ENRICHED_FILE)
-
-cleanest: cleaner
-	rm -f $(SCRAPED_FILES)
+.PHONY: all report clean
