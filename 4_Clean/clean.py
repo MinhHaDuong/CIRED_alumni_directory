@@ -30,6 +30,13 @@ from urllib.parse import urlparse
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import ingest_vcards, TypedVCard, VCardLine, setup_logging, get_vcard_identifier, process_vcards, output_vcards
 
+# Global configuration
+OBSOLETE_EMAIL_DOMAINS = {
+    "cired.fr",
+    "centre-cired.fr",
+    "services.cnrs.fr"
+}
+
 # --- Card Processing ---
 
 def clean(vcard: TypedVCard, args: argparse.Namespace) -> TypedVCard:
@@ -43,8 +50,10 @@ def clean(vcard: TypedVCard, args: argparse.Namespace) -> TypedVCard:
     logging.info(f"Processing '{get_vcard_identifier(vcard)}'")
     logging.debug(f"Entry to clean:\n{vcard.serialize().strip()}\n")
 
-    remove_obsolete_emails(vcard, args.filter_domain)
+    remove_obsolete_emails(vcard)
+    deduplicate_emails(vcard)
     remove_dead_urls(vcard, args.timeout)
+    deduplicate_CIRED_ORG(vcard)
 
     logging.debug(f"Cleaned entry:\n{vcard.serialize().strip()}\n")
     return vcard
@@ -52,21 +61,47 @@ def clean(vcard: TypedVCard, args: argparse.Namespace) -> TypedVCard:
 
 # --- Email Processing ---
 
-def remove_obsolete_emails(vcard: TypedVCard, filter_domain: str) -> None:
+def deduplicate_emails(vcard: TypedVCard) -> None:
+    """
+    Remove duplicate emails from a vCard (but keep the card).
+
+    Args:
+        vcard: The vCard to clean
+    """
+    if "email" not in vcard.contents:
+        return
+
+    unique_emails: set[str] = set()
+    emails_to_remove: list[VCardLine] = []
+
+    for email in vcard.contents["email"]:
+        email_value = str(email.value).strip().lower()
+        if email_value in unique_emails:
+            logging.info(f"Removing duplicate email: {email_value}")
+            emails_to_remove.append(email)
+        else:
+            unique_emails.add(email_value)
+
+    for email in emails_to_remove:
+        vcard.contents["email"].remove(email)
+
+    if not vcard.contents["email"]:
+        del vcard.contents["email"]
+
+
+def remove_obsolete_emails(vcard: TypedVCard) -> None:
     """
     Remove obsolete emails from a vCard (but keep the card).
 
     Args:
         vcard: The vCard to clean
-        filter_domain: Domain to filter out
-        identifier: Human-readable identifier for logging
     """
     if "email" not in vcard.contents:
         return
 
     emails_to_remove: list[VCardLine] = []
     for email in vcard.contents["email"]:
-        if is_obsolete_email(email.value, filter_domain):
+        if is_obsolete_email(email.value):
             logging.info(f"Removing obsolete email': {email.value}")
             emails_to_remove.append(email)
 
@@ -77,12 +112,21 @@ def remove_obsolete_emails(vcard: TypedVCard, filter_domain: str) -> None:
         del vcard.contents["email"]
 
 
-def is_obsolete_email(email_value: str, filter_domain: str) -> bool:
-    """Return True if the email contains the obsolete domain."""
+def is_obsolete_email(email_value: str) -> bool:
+    """Return True if the email contains any of the obsolete domains."""
     email_str = str(email_value).lower()
-    # Handle both direct email addresses and mailto: URLs
-    pattern = rf"(@|mailto:[^\s@]*@){re.escape(filter_domain.lower())}"
-    return bool(re.search(pattern, email_str))
+
+    for domain in OBSOLETE_EMAIL_DOMAINS:
+        # Handle both direct email addresses and mailto: URLs
+        pattern = rf"(@|mailto:[^\s@]*@){re.escape(domain.lower())}"
+        if re.search(pattern, email_str):
+            return True
+
+    # Return True if the email name is communication-cired
+    if email_str.startswith("communication-cired"):
+        return True
+
+    return False
 
 # --- URL Processing ---
 
@@ -197,16 +241,71 @@ def url_available(url: str, timeout: int = 3) -> bool:
         logging.warning(f"Unexpected error checking URL {url}: {e}")
         return False
 
+
+# --- CIRED Organization Processing ---
+
+def deduplicate_CIRED_ORG(vcard: TypedVCard) -> None:
+    """Remove duplicate CIRED organization entries from the vCard."""
+    if "org" not in vcard.contents:
+        return
+
+    # Use the CIRED acronym when available
+    for org in vcard.contents["org"]:
+        original_value = str(org.value).strip()
+        shorter_value = useAcronym(original_value)
+        # Placeholder: If we had both fully expanded and acronymized versions, keep only one
+        if shorter_value != original_value:
+            logging.debug(f"Acronymized: '{original_value}' -> '{shorter_value}'")
+            org.value = shorter_value
+
+    # Remove duplicates
+    unique_orgs: set[str] = set()
+    orgs_to_remove: list[VCardLine] = []
+
+    for org in vcard.contents["org"]:
+        org_value_normalized = str(org.value).strip().lower()
+
+        if org_value_normalized in unique_orgs:
+            logging.info(f"Removing duplicate org: {org.value}")
+            orgs_to_remove.append(org)
+        else:
+            unique_orgs.add(org_value_normalized)
+
+    for org in orgs_to_remove:
+        vcard.contents["org"].remove(org)
+
+    if not vcard.contents["org"]:
+        logging.error(f"Empty org field after dedup stage from {get_vcard_identifier(vcard)}")
+        del vcard.contents["org"]
+
+
+def useAcronym(org_value: str) -> str:
+    """Convert CIRED's fully expanded organization name to its acronym."""
+
+    # Replace various forms of the full CIRED name with the acronym
+    # Handle case insensitivity and common variations
+    patterns_to_replace = [
+        r"\bcentre international de recherche sur l'environnement et le développement\b",
+        r"\bcentre international de recherche sur l'environnement et le developpement\b",  # without accent
+        r"\bCentre International de Recherche sur l'Environnement et le Développement\b",
+        r"\bCentre International de Recherche sur l'Environnement et le Developpement\b",
+    ]
+
+    for pattern in patterns_to_replace:
+        org_value = re.sub(pattern, "CIRED", org_value, flags=re.IGNORECASE)
+
+    # Clean up extra spaces and parentheses
+    org_value = re.sub(r'\s*\(\s*CIRED\s*\)\s*', ' CIRED', org_value)  # Remove redundant (CIRED)
+    org_value = re.sub(r'\s+', ' ', org_value).strip()  # Normalize whitespace
+
+    return org_value
+
+
 # --- Command line interface ---
 
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
     parser = argparse.ArgumentParser(description="VCF Cleaner")
-    parser.add_argument(
-        "--filter-domain",
-        default="centre-cired.fr",
-        help="Email domain to filter out (default: centre-cired.fr)",
-    )
     parser.add_argument(
         "--timeout",
         type=int,

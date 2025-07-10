@@ -43,7 +43,12 @@ scrape: $(SCRAPED_FILES)
 .PRECIOUS: $(SCRAPED_FILES) $(MERGED_FILE) $(ENRICHED_FILE) $(CLEANED_FILE)
 
 # Nettoyage
-.PHONY: clean
+.PHONY: clean cleaner cleanest
 clean:
-	rm -f $(MERGED_FILE) $(ENRICHED_FILE) $(CLEANED_FILE)
+	rm -f $(CLEANED_FILE)
 
+cleaner: clean
+	rm -f $(MERGED_FILE) $(ENRICHED_FILE)
+
+cleanest: cleaner
+	rm -f $(SCRAPED_FILES)
