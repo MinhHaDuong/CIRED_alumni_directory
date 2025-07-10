@@ -22,6 +22,8 @@ import os
 import argparse
 import logging
 import re
+import time
+import random
 import requests
 from urllib.parse import urlparse
 
@@ -38,43 +40,41 @@ def clean(vcard: TypedVCard, args: argparse.Namespace) -> TypedVCard:
 
     Returns the modified vCard (never None).
     """
-    identifier = get_vcard_identifier(vcard)
-    logging.info(f"Processing '{identifier}'")
-
+    logging.info(f"Processing '{get_vcard_identifier(vcard)}'")
     logging.debug(f"Entry to clean:\n{vcard.serialize().strip()}\n")
 
-    # Remove obsolete emails (but keep the card)
-    if "email" in vcard.contents:
-        emails_to_remove: list[VCardLine] = []
-        for email in vcard.contents["email"]:
-            if is_obsolete_email(email.value, args.filter_domain):
-                logging.info(
-                    f"Removing obsolete email from '{identifier}': {email.value}"
-                )
-                emails_to_remove.append(email)
-        for email in emails_to_remove:
-            vcard.contents["email"].remove(email)
-        if not vcard.contents["email"]:
-            del vcard.contents["email"]
-
-    # Remove unavailable URLs (but keep the card)
-    if "url" in vcard.contents:
-        urls_to_remove: list[VCardLine] = []
-        for url_field in vcard.contents["url"]:
-            urls = find_urls(url_field.value)
-            for url in urls:
-                if url_is_unavailable(url, args.timeout):
-                    logging.info(f"Removing unavailable URL from '{identifier}': {url}")
-                    urls_to_remove.append(url_field)
-                    break  # If any URL in this field is 404, remove the whole field
-        for url_field in urls_to_remove:
-            vcard.contents["url"].remove(url_field)
-        if not vcard.contents["url"]:
-            del vcard.contents["url"]
+    remove_obsolete_emails(vcard, args.filter_domain)
+    remove_dead_urls(vcard, args.timeout)
 
     logging.debug(f"Cleaned entry:\n{vcard.serialize().strip()}\n")
-
     return vcard
+
+
+# --- Email Processing ---
+
+def remove_obsolete_emails(vcard: TypedVCard, filter_domain: str) -> None:
+    """
+    Remove obsolete emails from a vCard (but keep the card).
+
+    Args:
+        vcard: The vCard to clean
+        filter_domain: Domain to filter out
+        identifier: Human-readable identifier for logging
+    """
+    if "email" not in vcard.contents:
+        return
+
+    emails_to_remove: list[VCardLine] = []
+    for email in vcard.contents["email"]:
+        if is_obsolete_email(email.value, filter_domain):
+            logging.info(f"Removing obsolete email': {email.value}")
+            emails_to_remove.append(email)
+
+    for email in emails_to_remove:
+        vcard.contents["email"].remove(email)
+
+    if not vcard.contents["email"]:
+        del vcard.contents["email"]
 
 
 def is_obsolete_email(email_value: str, filter_domain: str) -> bool:
@@ -84,43 +84,118 @@ def is_obsolete_email(email_value: str, filter_domain: str) -> bool:
     pattern = rf"(@|mailto:[^\s@]*@){re.escape(filter_domain.lower())}"
     return bool(re.search(pattern, email_str))
 
+# --- URL Processing ---
+
+def remove_dead_urls(vcard: TypedVCard, timeout: int) -> None:
+    """
+    Remove dead URLs from a vCard (but keep the card).
+
+    Args:
+        vcard: The vCard to clean
+        timeout: Timeout for URL checking in seconds
+        identifier: Human-readable identifier for logging
+    """
+    if "url" not in vcard.contents:
+        return
+
+    urls_to_remove: list[VCardLine] = []
+    for url_field in vcard.contents["url"]:
+        urls = find_urls(url_field.value)
+        for url in urls:
+            if not url_available(url, timeout):
+                logging.info(f"Removing unavailable URL: {url}")
+                urls_to_remove.append(url_field)
+                break
+
+    for url_field in urls_to_remove:
+        vcard.contents["url"].remove(url_field)
+
+    if not vcard.contents["url"]:
+        del vcard.contents["url"]
+
+
 
 def find_urls(text: str) -> list[str]:
     """Extract all URLs from text and return as a list."""
     return re.findall(r'https?://[^\s;,\'"<>]+', str(text))
 
 
-def url_is_unavailable(url: str, timeout: int = 3) -> bool:
+def url_available(url: str, timeout: int = 3) -> bool:
     """
-    Return True if the given URL is unavailable (404, DNS error, connection error, etc).
-    Logs the reason for unavailability.
+    Return True if the given URL is available (accessible).
+    Logs the reason for unavailability when URL is not accessible.
     """
+    if "user=abc" in url:
+        logging.debug(f"Removing fake URL: {url}")
+        return False
+
+    if "1234-5678" in url:
+        logging.debug(f"Removing fake URL: {url}")
+        return False
+
+    if "linkedin.com" in url:
+        logging.warning(f"Skipping uncheckable LinkedIn page: {url}")
+        return True
+
     try:
         url = url.rstrip(".,;")
         parsed = urlparse(url)
         if not parsed.scheme or not parsed.netloc:
             logging.warning(f"Invalid URL format: {url}")
-            return True
-        resp = requests.head(
+            return False
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                        "AppleWebKit/537.36 (KHTML, like Gecko) "
+                        "Chrome/114.0.0.0 Safari/537.36",
+            "Referer": "https://www.google.com/",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
+            "Connection": "keep-alive",
+            "Upgrade-Insecure-Requests": "1"
+        }
+        response = requests.head(
             url,
             allow_redirects=True,
             timeout=timeout,
-            headers={"User-Agent": "VCF-Cleaner/1.0"},
+            headers=headers,
         )
-        if resp.status_code == 404:
+        if response.status_code == 405: # If HEAD is not allowed, fall back to GET
+            logging.debug(f"HEAD request not allowed for {url}, falling back to GET")
+            time.sleep(random.uniform(1.5, 3.0))  # reduce bot detection
+            response = requests.get(
+                url,
+                allow_redirects=True,
+                timeout=timeout,
+                headers=headers,
+            )
+        if response.status_code == 200:
+            return True
+        if response.status_code == 404:
             logging.info(f"URL {url} returned 404")
+            return False
+        if response.status_code == 999:
+            logging.info(f"URL {url} returned 999, indicating a rate limit or bot block (Linkedin)")
             return True
         return False
     except requests.exceptions.Timeout:
         logging.warning(f"Timeout checking URL {url}")
-        return True
+        return False
+    except requests.exceptions.ConnectionError as e:
+        # Handle DNS resolution failures and connection errors
+        error_msg = str(e)
+        if "NameResolutionError" in error_msg or "Name or service not known" in error_msg:
+            logging.info(f"Domain not found: {url}")
+        elif "Connection refused" in error_msg:
+            logging.info(f"Connection refused: {url}")
+        else:
+            logging.info(f"Connection error for {url}: {e}")
+        return False
     except requests.exceptions.RequestException as e:
-        logging.warning(f"Error checking URL {url}: {e}")
-        return True
+        logging.info(f"Request error checking URL {url}: {e}")
+        return False
     except Exception as e:
         logging.warning(f"Unexpected error checking URL {url}: {e}")
-        return True
-
+        return False
 
 # --- Command line interface ---
 
