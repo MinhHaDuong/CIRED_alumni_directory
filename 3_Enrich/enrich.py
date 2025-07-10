@@ -22,29 +22,10 @@ from openai import OpenAI
 import vobject
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import ingest_vcards, TypedVCard, setup_logging, get_vcard_identifier
+from utils import ingest_vcards, TypedVCard, setup_logging, get_vcard_identifier, process_vcards, output_vcards
 
-
-MODEL = "gpt-4.1"
-
-def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="VCF Enricher")
-    parser.add_argument(
-        "--exec", action="store_true", help="Actually call the LLM for enrichment"
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=None,
-        help="Limit processing to first N cards (for testing)",
-    )
-    parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Enable verbose logging"
-    )
-    return parser.parse_args()
-
-
+MODEL = "gpt-4.1-mini"  # Use a smaller model for cost efficiency and speed
+# MODEL = "gpt-4.1"  # Uncomment to use the full model
 
 # --- Card Processing ---
 
@@ -154,6 +135,7 @@ def clean_response(response: str) -> str:
     response = "\n".join(lines)
     return response
 
+
 def enrich_vcard_from_response(vcard: TypedVCard, response: str) -> TypedVCard:
     """
     Parse the LLM response and update the vCard with new information.
@@ -184,54 +166,34 @@ def enrich_vcard_from_response(vcard: TypedVCard, response: str) -> TypedVCard:
         logging.debug(f"Response content: {response}")
         return vcard
 
-# -- Main loop --
+# --- Command-line Interface ---
 
-def process_vcards(vcards: list[TypedVCard], args: argparse.Namespace) -> None:
-    """
-    Process a list of vCard objects and print results to stdout.
-    Applies limit if specified in args. Never drops a card: if processing fails, outputs the original.
-    Uses a finally clause to always print a result.
-    """
-    if not vcards:
-        logging.warning("No valid vCards found in input")
-        return
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="VCF Enricher")
+    parser.add_argument(
+        "--exec", action="store_true", help="Actually call the LLM for enrichment"
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit processing to first N cards (for testing)",
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
+    )
+    return parser.parse_args()
 
-    cards_to_process = vcards
-    if args.limit:
-        cards_to_process = vcards[: args.limit]
-        logging.info(f"Processing limited to first {len(cards_to_process)} cards")
-
-    processed_count = 0
-    for vcard in cards_to_process:
-        result = None
-        try:
-            result = enrich(vcard, args)
-            if not result:
-                raise RuntimeError("enrich returned no result for a vCard")
-        except Exception as e:
-            identifier = get_vcard_identifier(vcard)
-            logging.error(f"Error processing vCard '{identifier}': {e}. Passing original.")
-            result = vcard
-        finally:
-            # Always print a result and count it as processed
-            if result:
-                print(result.serialize().rstrip("\n") + "\n\n", end="")
-            else:
-                # This should never happen, but just in case
-                logging.error("No result to output - this should not happen")
-                print(vcard.serialize().rstrip("\n") + "\n\n", end="")
-            processed_count += 1
-
-    logging.info(f"Processing complete: {processed_count} processed")
 
 def main() -> int:
     """Enrich vCards from stdin."""
     args = parse_args()
     setup_logging(args.verbose)
     vcards = ingest_vcards(sys.stdin)
-    process_vcards(vcards, args)
+    processed_vcards = process_vcards(vcards, args, enrich)
+    output_vcards(processed_vcards)
     return 0
-
 
 if __name__ == "__main__":
     sys.exit(main())

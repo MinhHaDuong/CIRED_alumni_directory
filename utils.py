@@ -1,9 +1,8 @@
 import sys
-from turtle import title
-from typing import TextIO, Protocol, Any, cast
+import argparse
+from typing import TextIO, Protocol, Optional, cast, Literal, Callable
 import logging
 import vobject
-
 
 def setup_logging(verbose: bool = False) -> None:
     """Configure logging to output INFO level messages to stderr."""
@@ -13,16 +12,36 @@ def setup_logging(verbose: bool = False) -> None:
     )
 
 
-class TypedVCard(Protocol):
-    fn: Any
-    n: Any
-    contents: dict[str, list[Any]]
-    email: Any
-    org: Any
-    url: Any
-    title: Any
+class VCardLine(Protocol):
+    name: str                            # e.g. "EMAIL"
+    value: str                           # e.g. "john@example.com"
+    params: dict[str, list[str]]         # e.g. {"TYPE": ["work"]}
+    group: Optional[str]                 # e.g. "item1" for item1.EMAIL
+    singletonparams: dict[str, str]      # legacy support
 
-    def add(self, name: str) -> Any: ...
+    def serialize(self) -> str: ...
+
+
+class TypedVCard(Protocol):
+    """Represents a vCard object.
+
+    A valid VCARD **must have** exactly one `fn` and one `n` field.
+    For the rest, canonical access is through the `contents` dictionary.
+    A card can have 0 or more: email, org, title, url, ... fields.
+    The corresponding attribute defined below is a shortcut to the first occurrence of the field.
+        vcard.email.value               # string value
+        vcard.email.params.get("TYPE")  # e.g. ['WORK']
+    """
+    name: Literal["VCARD"]
+    fn: VCardLine
+    n: VCardLine
+    contents: dict[str, list[VCardLine]]
+    email: VCardLine
+    org: VCardLine
+    title: VCardLine
+    url: VCardLine
+
+    def add(self, name: str) -> VCardLine: ...
     def serialize(self) -> str: ...
 
 
@@ -50,3 +69,61 @@ def get_vcard_identifier(vcard: TypedVCard) -> str:
         return str(vcard.org.value)
     else:
         return "Unknown contact"
+
+
+def process_vcards(
+    vcards: list[TypedVCard],
+    args: argparse.Namespace,
+    processor_func: Callable[[TypedVCard, argparse.Namespace], TypedVCard]
+) -> list[TypedVCard]:
+    """
+    Generic function to process a list of vCard objects.
+
+    Args:
+        vcards: List of vCards to process
+        args: Command-line arguments with limit support
+        processor_func: Function that processes a single vCard (clean, enrich, etc.)
+
+    Returns:
+        List of processed TypedVCard objects.
+        Never drops a card: if processing fails, returns the original.
+    """
+    if not vcards:
+        logging.warning("No valid vCards found in input")
+        return []
+
+    cards_to_process = vcards[: args.limit] if args.limit else vcards
+    if args.limit:
+        logging.info(f"Processing limited to first {len(cards_to_process)} cards")
+
+    processed_cards: list[TypedVCard] = []
+    processed_count = 0
+    
+    for vcard in cards_to_process:
+        result = None
+        try:
+            result = processor_func(vcard, args)
+            if not result:
+                raise RuntimeError("Processor function returned no result for a vCard")
+        except Exception as e:
+            identifier = get_vcard_identifier(vcard)
+            logging.error(f"Error processing vCard '{identifier}': {e}. Passing original.")
+            result = vcard
+        finally:
+            processed_cards.append(result or vcard)
+            processed_count += 1
+
+    logging.info(f"Processing complete: {processed_count} processed")
+    return processed_cards
+
+
+def output_vcards(vcards: list[TypedVCard]) -> None:
+    """
+    Output a list of vCards to stdout in VCF format.
+    
+    Args:
+        vcards: List of vCards to output
+    """
+    for vcard in vcards:
+        output = vcard.serialize()
+        print(output.rstrip("\n") + "\n\n", end="")

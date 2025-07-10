@@ -26,36 +26,56 @@ import requests
 from urllib.parse import urlparse
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from utils import ingest_vcards, TypedVCard, setup_logging, get_vcard_identifier
+from utils import ingest_vcards, TypedVCard, VCardLine, setup_logging, get_vcard_identifier, process_vcards, output_vcards
 
+# --- Card Processing ---
 
-def parse_args() -> argparse.Namespace:
-    """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="VCF Cleaner")
-    parser.add_argument(
-        "--filter-domain",
-        default="centre-cired.fr",
-        help="Email domain to filter out (default: centre-cired.fr)",
-    )
-    parser.add_argument(
-        "--timeout",
-        type=int,
-        default=3,
-        help="Timeout for URL checking in seconds (default: 3)",
-    )
-    parser.add_argument(
-        "--limit",
-        type=int,
-        default=None,
-        help="Limit processing to first N cards (for testing)",
-    )
-    parser.add_argument(
-        "--verbose", "-v", action="store_true", help="Enable verbose logging"
-    )
-    return parser.parse_args()
+def clean(vcard: TypedVCard, args: argparse.Namespace) -> TypedVCard:
+    """
+    Process a single vCard object:
+    - Removes obsolete emails (logs removal, but never drops the card)
+    - Removes URLs that are unavailable (logs removal)
 
+    Returns the modified vCard (never None).
+    """
+    identifier = get_vcard_identifier(vcard)
+    logging.info(f"Processing '{identifier}'")
 
-# --- Cleaning ---
+    logging.debug(f"Entry to clean:\n{vcard.serialize().strip()}\n")
+
+    # Remove obsolete emails (but keep the card)
+    if "email" in vcard.contents:
+        emails_to_remove: list[VCardLine] = []
+        for email in vcard.contents["email"]:
+            if is_obsolete_email(email.value, args.filter_domain):
+                logging.info(
+                    f"Removing obsolete email from '{identifier}': {email.value}"
+                )
+                emails_to_remove.append(email)
+        for email in emails_to_remove:
+            vcard.contents["email"].remove(email)
+        if not vcard.contents["email"]:
+            del vcard.contents["email"]
+
+    # Remove unavailable URLs (but keep the card)
+    if "url" in vcard.contents:
+        urls_to_remove: list[VCardLine] = []
+        for url_field in vcard.contents["url"]:
+            urls = find_urls(url_field.value)
+            for url in urls:
+                if url_is_unavailable(url, args.timeout):
+                    logging.info(f"Removing unavailable URL from '{identifier}': {url}")
+                    urls_to_remove.append(url_field)
+                    break  # If any URL in this field is 404, remove the whole field
+        for url_field in urls_to_remove:
+            vcard.contents["url"].remove(url_field)
+        if not vcard.contents["url"]:
+            del vcard.contents["url"]
+
+    logging.debug(f"Cleaned entry:\n{vcard.serialize().strip()}\n")
+
+    return vcard
+
 
 def is_obsolete_email(email_value: str, filter_domain: str) -> bool:
     """Return True if the email contains the obsolete domain."""
@@ -102,90 +122,32 @@ def url_is_unavailable(url: str, timeout: int = 3) -> bool:
         return True
 
 
-# --- Card Processing ---
+# --- Command line interface ---
 
-def process_vcard(vcard: TypedVCard, args: argparse.Namespace) -> str:
-    """
-    Process a single vCard object:
-    - Removes obsolete emails (logs removal, but never drops the card)
-    - Removes URLs that are unavailable (logs removal)
-
-    Returns the serialized vCard (never None).
-    """
-    identifier = get_vcard_identifier(vcard)
-    logging.info(f"Processing '{identifier}'")
-
-    logging.debug("Entry to process:")
-    entry_text = vcard.serialize()
-    logging.debug(f"\n{entry_text.strip()}\n")
-
-    # Remove obsolete emails (but keep the card)
-    if "email" in vcard.contents:
-        emails_to_remove = []
-        for email in vcard.contents["email"]:
-            if is_obsolete_email(email.value, args.filter_domain):
-                logging.info(
-                    f"Removing obsolete email from '{identifier}': {email.value}"
-                )
-                emails_to_remove.append(email)
-        for email in emails_to_remove:
-            vcard.contents["email"].remove(email)
-        if not vcard.contents["email"]:
-            del vcard.contents["email"]
-
-    # Remove unavailable URLs (but keep the card)
-    if "url" in vcard.contents:
-        urls_to_remove = []
-        for url_field in vcard.contents["url"]:
-            urls = find_urls(url_field.value)
-            for url in urls:
-                if url_is_unavailable(url, args.timeout):
-                    logging.info(f"Removing unavailable URL from '{identifier}': {url}")
-                    urls_to_remove.append(url_field)
-                    break  # If any URL in this field is 404, remove the whole field
-        for url_field in urls_to_remove:
-            vcard.contents["url"].remove(url_field)
-        if not vcard.contents["url"]:
-            del vcard.contents["url"]
-
-    logging.debug("Cleaned entry:")
-    entry_text = vcard.serialize()
-    logging.debug(f"\n{entry_text.strip()}\n")
-
-    return entry_text
-
-
-
-def process_vcards(vcards: list[TypedVCard], args: argparse.Namespace) -> None:
-    """
-    Process a list of vCard objects and print results to stdout.
-    Applies limit if specified in args. Never drops a card: if processing fails, outputs the original.
-    Uses a finally clause to always print a result.
-    """
-    if not vcards:
-        logging.warning("No valid vCards found in input")
-        return
-    cards_to_process = vcards
-    if args.limit:
-        cards_to_process = vcards[: args.limit]
-        logging.info(f"Processing limited to first {len(cards_to_process)} cards")
-    processed_count = 0
-    for vcard in cards_to_process:
-        result = None
-        try:
-            result = process_vcard(vcard, args)
-            if not result:
-                raise RuntimeError("process_vcard returned no result for a vCard")
-        except Exception as e:
-            identifier = get_vcard_identifier(vcard)
-            logging.error(
-                f"Error processing vCard '{identifier}': {e}. Passing original."
-            )
-            result = vcard.serialize()
-        finally:
-            print(result.rstrip("\n") + "\n\n", end="")
-            processed_count += 1
-    logging.info(f"Processing complete: {processed_count} processed")
+def parse_args() -> argparse.Namespace:
+    """Parse command-line arguments."""
+    parser = argparse.ArgumentParser(description="VCF Cleaner")
+    parser.add_argument(
+        "--filter-domain",
+        default="centre-cired.fr",
+        help="Email domain to filter out (default: centre-cired.fr)",
+    )
+    parser.add_argument(
+        "--timeout",
+        type=int,
+        default=3,
+        help="Timeout for URL checking in seconds (default: 3)",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limit processing to first N cards (for testing)",
+    )
+    parser.add_argument(
+        "--verbose", "-v", action="store_true", help="Enable verbose logging"
+    )
+    return parser.parse_args()
 
 
 def main() -> int:
@@ -193,7 +155,8 @@ def main() -> int:
     args = parse_args()
     setup_logging(args.verbose)
     vcards = ingest_vcards(sys.stdin)
-    process_vcards(vcards, args)
+    processed_vcards = process_vcards(vcards, args, clean)
+    output_vcards(processed_vcards)
     return 0
 
 
