@@ -18,9 +18,7 @@ UNWRAP_SCRIPT := $(ENRICH_DIR)/unwrap.awk
 CLEAN_DIR := 4_Clean
 CLEANED_FILE := $(CLEAN_DIR)/cleaned.vcf
 CLEAN_SCRIPT := $(CLEAN_DIR)/clean.py
-
-# Quick fix for known emails
-FIX_SCRIPT := fix_emails.py
+FIX_SCRIPT := $(CLEAN_DIR)/fix_emails.py
 FIXED_FILE := $(CLEAN_DIR)/fixed.vcf
 
 REPORT_DIR := 5_Report

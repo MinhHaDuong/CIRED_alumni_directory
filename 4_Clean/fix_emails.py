@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 """
 Quick fix script to inject known emails for specific people.
-When emails are not populated in KNOWN_EMAILS, this script does nothing.
 """
 
 import sys
@@ -15,27 +14,26 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from utils import ingest_vcards, TypedVCard, setup_logging, process_vcards, output_vcards
 
 # Known email mappings - populate these with actual emails
-# When empty, the script will do nothing and pass through all vCards unchanged
 KNOWN_EMAILS = {
-    "Clément Feger": "",  # Add email here
-    "Daniel Thery": "",   # Add email here
-    "Guillaume Calas": "", # Add email here
-    "Hoby Ratsihoarana": "", # Add email here
-    "Héloïse Guillaumin": "", # Add email here
-    "Ilaria Brunetti": "", # TEST EMAIL
-    "Isabelle Billy": "", # Add email here
+    "Clément Feger": "",
+    "Daniel Thery": "",
+    "Guillaume Calas": "",
+    "Hoby Ratsihoarana": "",
+    "Héloïse Guillaumin": "",
+    "Ilaria Brunetti": "",
+    "Isabelle Billy": "",
     "Jean-Charles Hourcade": "jch.hourcade@gmail.com",
-    "Joël Hamann": "", # Add email here
-    "Laure Lampin": "", # Add email here
-    "Li Jun": "", # Add email here
+    "Joël Hamann": "",
+    "Laure Lampin": "",
+    "Li Jun": "",
     "Minh Ha-Duong": "minh.ha-duong@cnrs.fr",
-    "Nhan Nguyen": "", # Add email here
-    "Samuel Juhel": "", # Add email here
-    "Serine Guichoud": "", # Add email here
-    "Sébastien Duquesnoy": "", # Add email here
-    "Ta Mai-Thi": "", # Add email here
-    "Thanh Nguyen": "", # Add email here
-    "Thibault Corneloup": "", # Add email here
+    "Nhan Nguyen": "nhanait@yahoo.com",
+    "Samuel Juhel": "",
+    "Serine Guichoud": "",
+    "Sébastien Duquesnoy": "",
+    "Ta Mai-Thi": "",
+    "Thanh Nguyen": "",
+    "Thibault Corneloup": "",
 }
 
 def fix_vcard(vcard: TypedVCard, args: argparse.Namespace) -> TypedVCard:
