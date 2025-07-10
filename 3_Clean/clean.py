@@ -1,48 +1,37 @@
 #!/usr/bin/env python3
 """
-VCF Enricher Filter
-------------------
-This script reads VCF (vCard) data from standard input, processes each contact card
-using the vobject library, and outputs the filtered/enriched VCF data to standard output.
+VCF Cleaner
+-----------
+This script reads VCF (vCard) data from standard input, cleans each contact card
+using the vobject library, and outputs the cleaned VCF data to standard output.
 
 Features:
 - Drops entries with obsolete emails (ending with @centre-cired.fr)
 - Drops entries with URLs that return HTTP 404
-- Logs all actions and what would be sent to the LLM
-- Optionally calls an LLM for enrichment if --exec is passed
+- Logs all cleaning actions
 - Supports custom email domain filtering via --filter-domain
 - Configurable timeout for URL checking
 
 Usage examples:
-    python enrich.py < input.vcf > output.vcf
-    python enrich.py --exec < input.vcf > output.vcf
-    python enrich.py --filter-domain old-company.com --timeout 5 < input.vcf > output.vcf
+    python clean.py < input.vcf > output.vcf
+    python clean.py --filter-domain old-company.com --timeout 5 < input.vcf > output.vcf
 """
 
 import sys
+import os
 import argparse
 import logging
 import re
 import requests
-import vobject
 from urllib.parse import urlparse
 
-
-# --- Logging setup ---
-def setup_logging(verbose=False):
-    """Configure logging to output INFO level messages to stderr."""
-    level = logging.DEBUG if verbose else logging.INFO
-    logging.basicConfig(
-        level=level, format="%(asctime)s %(levelname)s: %(message)s", stream=sys.stderr
-    )
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from utils import ingest_vcards, TypedVCard, setup_logging, get_vcard_identifier
 
 
-def parse_args():
+def parse_args() -> argparse.Namespace:
     """Parse command-line arguments."""
-    parser = argparse.ArgumentParser(description="VCF Enricher Filter")
-    parser.add_argument(
-        "--exec", action="store_true", help="Actually call the LLM for enrichment"
-    )
+    parser = argparse.ArgumentParser(description="VCF Cleaner")
     parser.add_argument(
         "--filter-domain",
         default="centre-cired.fr",
@@ -67,7 +56,8 @@ def parse_args():
 
 
 # --- Cleaning ---
-def is_obsolete_email(email_value, filter_domain):
+
+def is_obsolete_email(email_value: str, filter_domain: str) -> bool:
     """Return True if the email contains the obsolete domain."""
     email_str = str(email_value).lower()
     # Handle both direct email addresses and mailto: URLs
@@ -75,12 +65,12 @@ def is_obsolete_email(email_value, filter_domain):
     return bool(re.search(pattern, email_str))
 
 
-def find_urls(text):
+def find_urls(text: str) -> list[str]:
     """Extract all URLs from text and return as a list."""
     return re.findall(r'https?://[^\s;,\'"<>]+', str(text))
 
 
-def url_is_unavailable(url, timeout=3):
+def url_is_unavailable(url: str, timeout: int = 3) -> bool:
     """
     Return True if the given URL is unavailable (404, DNS error, connection error, etc).
     Logs the reason for unavailability.
@@ -95,7 +85,7 @@ def url_is_unavailable(url, timeout=3):
             url,
             allow_redirects=True,
             timeout=timeout,
-            headers={"User-Agent": "VCF-Enricher/1.0"},
+            headers={"User-Agent": "VCF-Cleaner/1.0"},
         )
         if resp.status_code == 404:
             logging.info(f"URL {url} returned 404")
@@ -112,49 +102,13 @@ def url_is_unavailable(url, timeout=3):
         return True
 
 
-# --- Enrichment ---
-
-
-def call_llm(entry_text):
-    """
-    Placeholder for LLM enrichment.
-
-    In a real implementation, this would:
-    1. Send the vCard data to an LLM service
-    2. Ask for enrichment (e.g., standardized formatting, additional info)
-    3. Parse and validate the response
-    4. Return the enriched vCard data
-
-    For now, returns the entry unchanged.
-    """
-    logging.info("LLM enrichment called (placeholder)")
-    # TODO: Implement actual LLM integration
-    return entry_text
-
-
 # --- Card Processing ---
 
-
-def get_vcard_identifier(vcard):
-    """Extract a human-readable identifier from a vCard for logging."""
-    # Try to get name, email, or org for identification
-    if "fn" in vcard.contents:
-        return str(vcard.fn.value)
-    elif "email" in vcard.contents:
-        return str(vcard.email.value)
-    elif "org" in vcard.contents:
-        return str(vcard.org.value)
-    else:
-        return "Unknown contact"
-
-
-def process_vcard(vcard, args):
+def process_vcard(vcard: TypedVCard, args: argparse.Namespace) -> str:
     """
     Process a single vCard object:
     - Removes obsolete emails (logs removal, but never drops the card)
     - Removes URLs that are unavailable (logs removal)
-    - Logs what would be sent to the LLM
-    - If exec_mode is True, calls LLM for enrichment
 
     Returns the serialized vCard (never None).
     """
@@ -198,27 +152,11 @@ def process_vcard(vcard, args):
     entry_text = vcard.serialize()
     logging.debug(f"\n{entry_text.strip()}\n")
 
-    if args.exec:
-        enriched = call_llm(entry_text)
-        return enriched
-    else:
-        return entry_text
+    return entry_text
 
 
-def ingest_vcards(stdin):
-    """
-    Read VCF data from stdin and return a list of vCard objects.
-    """
-    vcf_text = stdin.read()
-    if not vcf_text.strip():
-        logging.error("No VCF data provided on stdin")
-        return []
-    vcards = list(vobject.readComponents(vcf_text))
-    logging.info(f"Read {len(vcards)} vCard(s)")
-    return vcards
 
-
-def process_vcards(vcards, args):
+def process_vcards(vcards: list[TypedVCard], args: argparse.Namespace) -> None:
     """
     Process a list of vCard objects and print results to stdout.
     Applies limit if specified in args. Never drops a card: if processing fails, outputs the original.
@@ -237,7 +175,7 @@ def process_vcards(vcards, args):
         try:
             result = process_vcard(vcard, args)
             if not result:
-                raise RuntimeError("process_vcf_entry returned no result for a vCard")
+                raise RuntimeError("process_vcard returned no result for a vCard")
         except Exception as e:
             identifier = get_vcard_identifier(vcard)
             logging.error(
@@ -250,8 +188,8 @@ def process_vcards(vcards, args):
     logging.info(f"Processing complete: {processed_count} processed")
 
 
-def main():
-    """Clean and enrich vCards from stdin."""
+def main() -> int:
+    """Clean vCards from stdin."""
     args = parse_args()
     setup_logging(args.verbose)
     vcards = ingest_vcards(sys.stdin)
