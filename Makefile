@@ -17,6 +17,9 @@ CLEAN_DIR := 4_Clean
 CLEANED_FILE := $(CLEAN_DIR)/cleaned.vcf
 CLEAN_SCRIPT := $(CLEAN_DIR)/clean.py
 
+REPORT_DIR := 5_Report
+REPORT_SCRIPT := $(REPORT_DIR)/no_email.py
+
 all: $(MERGED_FILE) $(ENRICHED_FILE) $(CLEANED_FILE)
 
 $(SCRAPE_DIR)/%.vcf:
@@ -40,7 +43,34 @@ test: $(MERGED_FILE)
 scrape: $(SCRAPED_FILES)
 	@echo "Scraping completed. Files are located in $(SCRAPE_DIR)/"
 
+# Generate reports
+.PHONY: report-no-email
+report-no-email: $(CLEANED_FILE)
+	cat $(CLEANED_FILE) | $(PY) $(REPORT_SCRIPT) --sort
+
+.PHONY: report-no-email-count
+report-no-email-count: $(CLEANED_FILE)
+	cat $(CLEANED_FILE) | $(PY) $(REPORT_SCRIPT) --count-only
+
+.PHONY: reports
+reports: report-no-email
+	@echo "Reports generated."
+
 .PRECIOUS: $(SCRAPED_FILES) $(MERGED_FILE) $(ENRICHED_FILE) $(CLEANED_FILE)
+
+# Help target
+.PHONY: help
+help:
+	@echo "Available targets:"
+	@echo "  all                    - Run the full pipeline: scrape → merge → enrich → clean"
+	@echo "  scrape                 - Run all scrapers to collect vCard data"
+	@echo "  test                   - Run the test suite"
+	@echo "  report-no-email        - List people without email addresses"
+	@echo "  report-no-email-count  - Count people without email addresses"
+	@echo "  reports                - Generate all reports"
+	@echo "  clean                  - Remove cleaned.vcf"
+	@echo "  cleaner                - Remove merged.vcf, enriched.vcf, and cleaned.vcf"
+	@echo "  cleanest               - Remove all generated files including scraped data"
 
 # Nettoyage
 .PHONY: clean cleaner cleanest
