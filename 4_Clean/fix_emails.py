@@ -10,7 +10,7 @@ import logging
 from typing import Literal
 
 # Add parent directory to path for imports
-sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from utils import ingest_vcards, TypedVCard, setup_logging, process_vcards, output_vcards
 
 # Known email mappings - populate these with actual emails
