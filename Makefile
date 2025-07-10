@@ -9,15 +9,15 @@ MERGE_DIR := 2_Merge
 MERGED_FILE := $(MERGE_DIR)/merged.vcf
 MERGE_SCRIPT := $(MERGE_DIR)/merge.py
 
-CLEAN_DIR:= 3_Clean
-CLEANED_FILE := $(CLEAN_DIR)/cleaned.vcf
-CLEAN_SCRIPT := $(CLEAN_DIR)/clean.py
-
-ENRICH_DIR:= 4_Enrich
+ENRICH_DIR := 3_Enrich
 ENRICHED_FILE := $(ENRICH_DIR)/enriched.vcf
 ENRICH_SCRIPT := $(ENRICH_DIR)/enrich.py
 
-all: $(MERGED_FILE) $(CLEANED_FILE) $(ENRICHED_FILE)
+CLEAN_DIR := 4_Clean
+CLEANED_FILE := $(CLEAN_DIR)/cleaned.vcf
+CLEAN_SCRIPT := $(CLEAN_DIR)/clean.py
+
+all: $(MERGED_FILE) $(ENRICHED_FILE) $(CLEANED_FILE)
 
 $(SCRAPE_DIR)/%.vcf:
 	$(PY) $(SCRAPE_DIR)/%.py
@@ -25,11 +25,11 @@ $(SCRAPE_DIR)/%.vcf:
 $(MERGED_FILE): $(MERGE_SCRIPT) $(SCRAPED_FILES)
 	$(PY) $(MERGE_SCRIPT)
 
-$(CLEANED_FILE): $(MERGED_FILE) $(CLEAN_SCRIPT)
-	cat $(MERGED_FILE) | $(PY) $(CLEAN_SCRIPT) > $@
+$(ENRICHED_FILE): $(MERGED_FILE) $(ENRICH_SCRIPT)
+	cat $(MERGED_FILE) | $(PY) $(ENRICH_SCRIPT) --exec > $@
 
-$(ENRICHED_FILE): $(CLEANED_FILE) $(ENRICH_SCRIPT)
-	cat $(CLEANED_FILE) | $(PY) $(ENRICH_SCRIPT) --exec > $@
+$(CLEANED_FILE): $(ENRICHED_FILE) $(CLEAN_SCRIPT)
+	cat $(ENRICHED_FILE) | $(PY) $(CLEAN_SCRIPT) > $@
 
 # Lancer la suite de tests
 .PHONY: test
@@ -40,10 +40,10 @@ test: $(MERGED_FILE)
 scrape: $(SCRAPED_FILES)
 	@echo "Scraping completed. Files are located in $(SCRAPE_DIR)/"
 
-.PRECIOUS: $(SCRAPED_FILES) $(MERGED_FILE) $(CLEANED_FILE)
+.PRECIOUS: $(SCRAPED_FILES) $(MERGED_FILE) $(ENRICHED_FILE) $(CLEANED_FILE)
 
 # Nettoyage
 .PHONY: clean
 clean:
-	rm -f $(MERGED_FILE) $(CLEANED_FILE)
+	rm -f $(MERGED_FILE) $(ENRICHED_FILE) $(CLEANED_FILE)
 
