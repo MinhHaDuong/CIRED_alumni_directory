@@ -1,36 +1,16 @@
 # CIRED Alumni Directory
 
-This repository contains a set of Python scripts for building a contact directory of researchers currently or formely affiliated with **CIRED**. Each scraper collects data from a different source, exports the results as vCards, and a final merge step deduplicates the cards into a single file.
+This repository contains a set of Python scripts for building a directory of researchers currently or formely affiliated with **CIRED**.
 
-## Repository layout
+1. Scrapers collects data from a different source, exports the results as vCards.
+2. The merge step deduplicates the cards into a single file.
+3. The enrich step search the web for emails, affiliations, homepages
+4. The clean step removes obsolete emails, verifies URLs, deduplicates
 
-```
-1_Scrape/        scraping scripts
-    askCIRED.py    - scrape cired.fr for staff and alumni
-    askHAL.py      - query the HAL API for CIRED authors
-    askREPEC.py    - scrape RePEc for member/alumni data
-2_Merge/
-   merge.py        - merge the individual vCard files
-3_Enrich/
-requirements.txt   Python package requirements
-schema.md          vCard schema and custom field documentation
-```
+GRPD Legitimate Use clause: There was a collective consensus at the 50 years anniversary conference that we, as the alumni community, should have a directory and an association.
 
-## Quick start
+GRPD Proportionality clause: See **schema.md** for the information collected, which is limited to what a professional alumni directory normally includes.
 
-1. Create a Python 3 environment and install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-2. Run each scraper to generate `askCIRED.vcf`, `askHAL.vcf` and `askREPEC.vcf` (and accompanying CSV files where applicable):
-   ```bash
-   python 1_Scraping/askCIRED.py
-   python 1_Scraping/askHAL.py
-   python 1_Scraping/askREPEC.py
-   ```
-3. Merge the resulting cards into `merged.vcf`:
-   ```bash
-   python 1_Scraping/merge.py
-   ```
+GRPD Opposition right: The merge step will not process entries for persons with FN listed in the `blacklist.txt` file.
 
-See **schema.md** for the full list of vCard fields and custom extensions used in the directory.
+Contact: <minh.ha-duong@cnrs.fr>
