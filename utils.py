@@ -40,6 +40,7 @@ class TypedVCard(Protocol):
     org: VCardLine
     title: VCardLine
     url: VCardLine
+    note: VCardLine
 
     def add(self, name: str) -> VCardLine: ...
     def serialize(self) -> str: ...
@@ -98,7 +99,7 @@ def process_vcards(
 
     processed_cards: list[TypedVCard] = []
     processed_count = 0
-    
+
     for vcard in cards_to_process:
         result = None
         try:
@@ -120,7 +121,7 @@ def process_vcards(
 def output_vcards(vcards: list[TypedVCard]) -> None:
     """
     Output a list of vCards to stdout in VCF format.
-    
+
     Args:
         vcards: List of vCards to output
     """
