@@ -370,14 +370,56 @@ def merge_all_contacts(
 
 
 def write_merged_contacts(
-    merged_contacts: list[TypedVCard], output_file: str = "merged.vcf"
+    merged_contacts: list[TypedVCard], output_file: str = "merged.vcf", blacklist_file: str = "blacklist.txt"
 ) -> None:
     """Write merged vCards to an output file in vCard format."""
+
+    # Load blacklist from file
+    blacklist: set[str] = set()
+
+    # Handle blacklist file path relative to the merge script directory
+    blacklist_path = os.path.join(os.path.dirname(__file__), blacklist_file)
+
+    try:
+        if os.path.isfile(blacklist_path):
+            with open(blacklist_path, "r", encoding="utf-8") as f:
+                for line in f:
+                    name = line.strip()
+                    if name and not name.startswith('#'):  # Skip comments
+                        blacklist.add(name)
+            logging.info(f"Loaded {len(blacklist)} names from blacklist: {blacklist_path}")
+        else:
+            logging.info(f"No blacklist file found at {blacklist_path}, proceeding without filtering")
+    except Exception as e:
+        logging.warning(f"Error reading blacklist file {blacklist_path}: {e}. Proceeding without filtering.")
+
+    # Count filtered contacts
+    filtered_count = 0
+    written_count = 0
+
     with open(output_file, "w", encoding="utf-8") as f:
         for vcard in merged_contacts:
-            f.write(vcard.serialize())
-            f.write("\n")
-    print(f"Wrote {len(merged_contacts)} merged contacts to {output_file}")
+            if hasattr(vcard, "fn"):
+                fn_value = vcard.fn.value.strip()
+                if fn_value not in blacklist:
+                    # Write the vCard to the file
+                    f.write(vcard.serialize())
+                    f.write("\n")
+                    written_count += 1
+                else:
+                    logging.info(f"Filtered out blacklisted contact: {fn_value}")
+                    filtered_count += 1
+            else:
+                # Handle vCards without FN field
+                logging.warning("Found vCard without FN field, writing anyway")
+                f.write(vcard.serialize())
+                f.write("\n")
+                written_count += 1
+
+    logging.info(f"Wrote {written_count} contacts to {output_file}")
+    if filtered_count > 0:
+        logging.info(f"Filtered out {filtered_count} blacklisted contacts")
+    print(f"Wrote {written_count} merged contacts to {output_file}")
 
 
 def verify_inverted_fn_pairs(vcf_path: str = "merged.vcf") -> int:
