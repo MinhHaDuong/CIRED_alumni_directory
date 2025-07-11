@@ -17,7 +17,7 @@ from utils import ingest_vcards, TypedVCard, setup_logging, process_vcards, outp
 KNOWN_EMAILS = {
     "Assié Arnaud": "assie.arnaud@gmail.com",
     "Clément Feger": "clement.fege@agroparistech.fr",
-    "Daniel Thery": "",
+    "Daniel Thery": "d.thery46@gmail.com",
     "Guillaume Calas": "erthindol@hotmail.com",
     "Hoby Ratsihoarana": "hoby.ratsihoarana@gmail.com",
     "Héloïse Guillaumin": "heloise.guillaumin@gmail.com",
