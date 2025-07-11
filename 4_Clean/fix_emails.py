@@ -21,7 +21,7 @@ KNOWN_EMAILS = {
     "Hoby Ratsihoarana": "",
     "Héloïse Guillaumin": "",
     "Ilaria Brunetti": "",
-    "Isabelle Billy": "",
+    "Isabelle Billy": "isabelle.billy348@orange.fr",
     "Jean-Charles Hourcade": "jch.hourcade@gmail.com",
     "Joël Hamann": "",
     "Laure Lampin": "",
