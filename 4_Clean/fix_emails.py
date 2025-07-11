@@ -24,7 +24,7 @@ KNOWN_EMAILS = {
     "Isabelle Billy": "isabelle.billy348@orange.fr",
     "Jean-Charles Hourcade": "jch.hourcade@gmail.com",
     "Joël Hamann": "",
-    "Laure Lampin": "",
+    "Laure Lampin": "laure.grazi@dgtresor.gouv.fr",
     "Li Jun": "",
     "Minh Ha-Duong": "minh.ha-duong@cnrs.fr",
     "Nhan Nguyen": "nhanait@yahoo.com",
