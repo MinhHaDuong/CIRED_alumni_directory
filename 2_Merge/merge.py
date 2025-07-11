@@ -107,6 +107,8 @@ FN_SUBSTITUTION_BASE = {
     "Monjon S": "Stéphanie Monjon",
     "Nguyen Hoai Son": "Hoai Son Nguyen",
     "Nguyen Nhan Than": "Nhan Than Nguyen",
+    "Than Nguyen ": "Nhan Than Nguyen",
+    "Nhan Nguyen": "Nhan Than Nguyen",
     "Nguyen Trinh Hoang Anh": "Hoang Anh Nguyen Trinh",
     "Trinh Nguyen Hoang Anh": "Hoang Anh Nguyen Trinh",
     "Trinh Hoang Anh Nguyen": "Hoang Anh Nguyen Trinh",
