@@ -28,13 +28,12 @@ KNOWN_EMAILS = {
     "Laure Lampin": "laure.grazi@dgtresor.gouv.fr",
     "Li Jun": "prunush208@gmail.com",
     "Minh Ha-Duong": "minh.ha-duong@cnrs.fr",
-    "Nhan Nguyen": "nhanait@yahoo.com",
+    "Nguyen Nhan Thanh": "nhanait@yahoo.com",
     "Samuel Juhel": "samuel.juhel@usys.ethz.ch",
     "Serine Guichoud": "serine.guichoud@lmd.ipsl.fr",
     "Sébastien Duquesnoy": "sebastien.duquesnoy@gmail.com",
     "Son Hoai Nguyen": "hoaisonkt@gmail.com",
     "Ta Mai-Thi": "mai-thi.ta@agroparistech.fr",
-    "Thanh Nguyen": "",
     "Thibault Corneloup": "thi.loup3@gmail.com",
 }
 

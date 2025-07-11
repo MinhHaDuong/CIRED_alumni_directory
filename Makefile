@@ -18,7 +18,9 @@ UNWRAP_SCRIPT := $(ENRICH_DIR)/unwrap.awk
 CLEAN_DIR := 4_Clean
 CLEANED_FILE := $(CLEAN_DIR)/cleaned.vcf
 CLEAN_SCRIPT := $(CLEAN_DIR)/clean.py
-FIX_SCRIPT := $(CLEAN_DIR)/fix_emails.py
+FIX_EMAIL := $(CLEAN_DIR)/fix_emails.py
+FIX_UNFOLD := $(CLEAN_DIR)/unfold.sed
+FIX_NORMALIZE := $(CLEAN_DIR)/normalize.sed
 FIXED_FILE := $(CLEAN_DIR)/fixed.vcf
 
 REPORT_DIR := 5_Report
@@ -42,7 +44,7 @@ $(CLEANED_FILE): $(UNWRAPPED_FILE)
 	$(PY) $(CLEAN_SCRIPT) < $< > $@
 
 $(FIXED_FILE): $(CLEANED_FILE)
-	$(PY) $(FIX_SCRIPT) < $< > $@ || cp $< $@
+	$(PY) $(FIX_EMAIL) < $< | sed -f $(FIX_UNFOLD) | sed -f $(FIX_NORMALIZE) > $@ || rm -f $@
 
 report: $(FIXED_FILE)
 	$(PY) $(REPORT_SCRIPT) < $<
