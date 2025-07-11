@@ -15,6 +15,7 @@ from utils import ingest_vcards, TypedVCard, setup_logging, process_vcards, outp
 
 # Known email mappings - populate these with actual emails
 KNOWN_EMAILS = {
+    "Assié Arnaud": "assie.arnaud@gmail.com",
     "Clément Feger": "clement.fege@agroparistech.fr",
     "Daniel Thery": "",
     "Guillaume Calas": "erthindol@hotmail.com",
