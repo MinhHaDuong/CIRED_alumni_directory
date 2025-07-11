@@ -29,7 +29,7 @@ KNOWN_EMAILS = {
     "Minh Ha-Duong": "minh.ha-duong@cnrs.fr",
     "Nhan Nguyen": "nhanait@yahoo.com",
     "Samuel Juhel": "samuel.juhel@usys.ethz.ch",
-    "Serine Guichoud": "",
+    "Serine Guichoud": "serine.guichoud@lmd.ipsl.fr",
     "Sébastien Duquesnoy": "sebastien.duquesnoy@gmail.com",
     "Ta Mai-Thi": "mai-thi.ta@agroparistech.fr",
     "Thanh Nguyen": "",
