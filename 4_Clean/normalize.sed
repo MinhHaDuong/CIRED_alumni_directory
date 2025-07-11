@@ -28,5 +28,14 @@ s/'Sciences Po'/Sciences Po/
 s/"//g
 s/ORG: /ORG:/g
 s/-- /, /g
-s/EMAIL: /EMAIL:/
+s/EMAIL: /EMAIL:/g
 
+# Drop empty VCARD fields
+/^EMAIL:$/d
+/^ORG:$/d
+/^TITLE:$/d
+/^URL[^:]*:$/d
+/^TEL[^:]*:$/d
+/^ADR:$/d
+/^NOTE:$/d
+/^NICKNAME:$/d

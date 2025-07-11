@@ -1,4 +1,4 @@
-# unfold.sed — Unfold VCARD lines by removing line breaks followed by space or tab
+# unfold.sed — Unfold VCARD lines and remove \r
 # Per RFC 6350 §3.2
 
 # Usage
@@ -9,5 +9,9 @@
 N
 $!ba
 
-# Replace CRLF or LF followed by space or tab with a single space
-s/\(\r\?\)\n[ \t]//g
+# Remove all \r characters (Windows line endings)
+s/\r//g
+
+# Unfold VCARD continuation lines (join newline + space/tab)
+s/\n[ \t]/ /g
+

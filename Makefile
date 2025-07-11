@@ -43,8 +43,9 @@ $(UNWRAPPED_FILE): $(ENRICHED_FILE)
 $(CLEANED_FILE): $(UNWRAPPED_FILE)
 	$(PY) $(CLEAN_SCRIPT) < $< > $@
 
+# uniq to drop runs of ORG:CIRED
 $(FIXED_FILE): $(CLEANED_FILE)
-	$(PY) $(FIX_EMAIL) < $< | sed -f $(FIX_UNFOLD) | sed -f $(FIX_NORMALIZE) > $@ || rm -f $@
+	$(PY) $(FIX_EMAIL) < $< | sed -f $(FIX_UNFOLD) | sed -f $(FIX_NORMALIZE) | uniq > $@ || rm -f $@
 
 report: $(FIXED_FILE)
 	$(PY) $(REPORT_SCRIPT) < $<
