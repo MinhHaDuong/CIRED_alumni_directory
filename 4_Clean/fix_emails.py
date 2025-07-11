@@ -15,12 +15,12 @@ from utils import ingest_vcards, TypedVCard, setup_logging, process_vcards, outp
 
 # Known email mappings - populate these with actual emails
 KNOWN_EMAILS = {
-    "Clément Feger": "",
+    "Clément Feger": "clement.fege@agroparistech.fr",
     "Daniel Thery": "",
-    "Guillaume Calas": "",
-    "Hoby Ratsihoarana": "",
-    "Héloïse Guillaumin": "",
-    "Ilaria Brunetti": "",
+    "Guillaume Calas": "erthindol@hotmail.com",
+    "Hoby Ratsihoarana": "hoby.ratsihoarana@gmail.com",
+    "Héloïse Guillaumin": "heloise.guillaumin@gmail.com",
+    "Ilaria Brunetti": "ilaria.brunetti@uzh.ch",
     "Isabelle Billy": "isabelle.billy348@orange.fr",
     "Jean-Charles Hourcade": "jch.hourcade@gmail.com",
     "Joël Hamann": "hamann.joel@orange.fr",
@@ -30,10 +30,10 @@ KNOWN_EMAILS = {
     "Nhan Nguyen": "nhanait@yahoo.com",
     "Samuel Juhel": "samuel.juhel@usys.ethz.ch",
     "Serine Guichoud": "",
-    "Sébastien Duquesnoy": "",
+    "Sébastien Duquesnoy": "sebastien.duquesnoy@gmail.com",
     "Ta Mai-Thi": "",
     "Thanh Nguyen": "",
-    "Thibault Corneloup": "",
+    "Thibault Corneloup": "thi.loup3@gmail.com",
 }
 
 def fix_vcard(vcard: TypedVCard, args: argparse.Namespace) -> TypedVCard:
