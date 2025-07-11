@@ -3,8 +3,8 @@
 List people without email addresses in their vCard.
 
 This script reads vCard data from stdin and outputs the full names (FN) of people
-who don't have any email address in their vCard. This helps identify contacts
-that need email addresses to be added.
+who don't have any email address in their vCard, or who have only empty email addresses.
+This helps identify contacts that need email addresses to be added.
 
 Usage:
     cat cleaned.vcf | python no_email.py
@@ -24,26 +24,34 @@ from utils import ingest_vcards, setup_logging, get_vcard_identifier, TypedVCard
 
 def has_email(vcard: TypedVCard) -> bool:
     """
-    Check if a vCard has at least one email address.
+    Check if a vCard has at least one non-empty email address.
     
     Args:
         vcard: The vCard to check
         
     Returns:
-        True if the vCard has at least one email address, False otherwise
+        True if the vCard has at least one non-empty email address, False otherwise
     """
-    return "email" in vcard.contents and len(vcard.contents["email"]) > 0
+    if "email" not in vcard.contents:
+        return False
+    
+    # Check if any email address is non-empty
+    for email in vcard.contents["email"]:
+        if email.value and email.value.strip():
+            return True
+    
+    return False
 
 
 def get_people_without_email(vcards: list[TypedVCard]) -> list[str]:
     """
-    Get a list of full names (FN) for people without email addresses.
+    Get a list of full names (FN) for people without email addresses or with only empty email addresses.
     
     Args:
         vcards: List of vCards to analyze
         
     Returns:
-        List of full names of people without email addresses
+        List of full names of people without email addresses or with only empty email addresses
     """
     people_without_email = []
     
@@ -62,7 +70,7 @@ def get_people_without_email(vcards: list[TypedVCard]) -> list[str]:
 
 def main():
     parser = argparse.ArgumentParser(
-        description="List people without email addresses from vCard data"
+        description="List people without email addresses or with only empty email addresses from vCard data"
     )
     parser.add_argument(
         "-v", "--verbose", 
@@ -102,12 +110,12 @@ def main():
         print(f"{len(people_without_email)}")
     else:
         if people_without_email:
-            print(f"People without email addresses ({len(people_without_email)} total):")
-            print("=" * 50)
+            print(f"People without email addresses or with only empty email addresses ({len(people_without_email)} total):")
+            print("=" * 70)
             for name in people_without_email:
                 print(name)
         else:
-            print("All people have email addresses.")
+            print("All people have non-empty email addresses.")
     
     # Log summary
     total_people = len(vcards)
