@@ -31,6 +31,7 @@ KNOWN_EMAILS = {
     "Samuel Juhel": "samuel.juhel@usys.ethz.ch",
     "Serine Guichoud": "serine.guichoud@lmd.ipsl.fr",
     "Sébastien Duquesnoy": "sebastien.duquesnoy@gmail.com",
+    "Son Hoai Nguyen": "hoaisonkt@gmail.com",
     "Ta Mai-Thi": "mai-thi.ta@agroparistech.fr",
     "Thanh Nguyen": "",
     "Thibault Corneloup": "thi.loup3@gmail.com",
